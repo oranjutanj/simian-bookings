@@ -1,0 +1,98 @@
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Text.Json;
+using SimianBookings.Models;
+using SimianBookings.Services;
+
+namespace SimianBookings.Functions;
+
+public class GetAvailableSlots
+{
+    private readonly GraphService _graph;
+    private readonly SessionsService _sessions;
+    private readonly ILogger<GetAvailableSlots> _logger;
+
+    public GetAvailableSlots(GraphService graph, SessionsService sessions, ILogger<GetAvailableSlots> logger)
+    {
+        _graph = graph;
+        _sessions = sessions;
+        _logger = logger;
+    }
+
+    [Function("GetAvailableSlots")]
+    public async Task<HttpResponseData> Run(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "slots")] HttpRequestData req)
+    {
+        var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var sessionTypeId = query["sessionType"];
+        var weeksAheadStr = query["weeksAhead"];
+
+        if (string.IsNullOrEmpty(sessionTypeId))
+        {
+            var bad = req.CreateResponse(HttpStatusCode.BadRequest);
+            await bad.WriteStringAsync("sessionType parameter is required");
+            return bad;
+        }
+
+        var session = _sessions.GetById(sessionTypeId);
+        if (session == null)
+        {
+            var notFound = req.CreateResponse(HttpStatusCode.NotFound);
+            await notFound.WriteStringAsync($"Session type '{sessionTypeId}' not found");
+            return notFound;
+        }
+
+        var weeksAhead = int.TryParse(weeksAheadStr, out var w) ? w : 2;
+        var fromUtc = DateTime.UtcNow;
+        var toUtc = fromUtc.AddDays(weeksAhead * 7);
+
+        try
+        {
+            var busySlots = await _graph.GetBusySlotsAsync(fromUtc, toUtc);
+            var availableSlots = SlotCalculator.GetAvailableSlots(session, busySlots, fromUtc, toUtc);
+
+            var response = new SlotResponse(
+                session.Id,
+                session.Name,
+                session.DurationMinutes,
+                availableSlots.Select(s => s.ToString("o")).ToList()
+            );
+
+            var ok = req.CreateResponse(HttpStatusCode.OK);
+            ok.Headers.Add("Content-Type", "application/json");
+            ok.Headers.Add("Access-Control-Allow-Origin", "*");
+            await ok.WriteStringAsync(JsonSerializer.Serialize(response,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            return ok;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching available slots");
+            var error = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await error.WriteStringAsync("An error occurred fetching available slots");
+            return error;
+        }
+    }
+
+    [Function("GetSessionTypes")]
+    public async Task<HttpResponseData> GetSessionTypes(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "session-types")] HttpRequestData req)
+    {
+        var all = _sessions.GetAll().Select(s => new
+        {
+            s.Id,
+            s.Name,
+            s.Description,
+            s.DurationMinutes
+        });
+
+        var ok = req.CreateResponse(HttpStatusCode.OK);
+        ok.Headers.Add("Content-Type", "application/json");
+        ok.Headers.Add("Access-Control-Allow-Origin", "*");
+        await ok.WriteStringAsync(JsonSerializer.Serialize(all,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        return ok;
+    }
+}

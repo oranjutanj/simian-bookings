@@ -1,0 +1,10 @@
+# Azure Functions
+api/bin/
+api/obj/
+
+# Secrets — never commit
+api/local.settings.json
+
+# OS
+.DS_Store
+Thumbs.db

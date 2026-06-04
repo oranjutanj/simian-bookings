@@ -1,0 +1,30 @@
+[
+  {
+    "id": "coaching-45",
+    "name": "Coaching Session (45 min)",
+    "description": "A focused 45-minute one-to-one coaching session. We'll work on the topics most important to you — whether that's career direction, leadership, confidence, or navigating a specific challenge.",
+    "durationMinutes": 45,
+    "bufferMinutes": 15,
+    "availabilityWindows": [
+      {
+        "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday"],
+        "startTime": "18:00",
+        "endTime": "21:00"
+      }
+    ]
+  },
+  {
+    "id": "coaching-60",
+    "name": "Coaching Session (60 min)",
+    "description": "A deeper 60-minute one-to-one coaching session, giving us more space to explore your goals and work through challenges together.",
+    "durationMinutes": 60,
+    "bufferMinutes": 15,
+    "availabilityWindows": [
+      {
+        "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday"],
+        "startTime": "18:00",
+        "endTime": "21:00"
+      }
+    ]
+  }
+]

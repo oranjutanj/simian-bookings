@@ -4,6 +4,9 @@
 
 # Test output
 TestResults/
+smoke-tests/node_modules/
+smoke-tests/playwright-report/
+smoke-tests/test-results/
 
 # Secrets — never commit
 api/local.settings.json

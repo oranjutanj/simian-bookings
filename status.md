@@ -3,11 +3,16 @@
 ## 2026-06-08 — Unit testing baseline added in VS Code
 
 ### Progress made today
+- Expanded `README.md` into a proper project overview / handoff document covering architecture, setup, tests, config, caveats, and next steps.
 - Refactored function dependencies to use interfaces for testability:
 	- `IGraphService` implemented by `GraphService`
 	- `ISessionsService` implemented by `SessionsService`
 - Updated DI setup in `api/Program.cs` to register interface mappings.
 - Added a new test project at `tests/SimianBookings.Tests` using xUnit + Moq.
+- Updated `web/index.html` API base detection so opening the page directly via `file://` uses `http://localhost:7071/api` for local preview.
+- Added a separate Playwright smoke-test suite under `smoke-tests/` for occasional pre-build browser checks.
+- Verified smoke suite locally with `cd smoke-tests && npm test`.
+- Smoke suite result: 3 passed, 0 failed.
 - Added unit tests for:
 	- `SlotCalculator` (busy slot handling, buffer behavior, minimum notice)
 	- `SessionsService` (loading from configured script root and lookup behavior)

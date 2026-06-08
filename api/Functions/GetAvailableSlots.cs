@@ -1,6 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using Azure.Identity;
 using System.Net;
 using System.Text.Json;
 using SimianBookings.Models;
@@ -32,6 +33,7 @@ public class GetAvailableSlots
         if (string.IsNullOrEmpty(sessionTypeId))
         {
             var bad = req.CreateResponse(HttpStatusCode.BadRequest);
+            AddCorsHeaders(bad);
             await bad.WriteStringAsync("sessionType parameter is required");
             return bad;
         }
@@ -40,6 +42,7 @@ public class GetAvailableSlots
         if (session == null)
         {
             var notFound = req.CreateResponse(HttpStatusCode.NotFound);
+            AddCorsHeaders(notFound);
             await notFound.WriteStringAsync($"Session type '{sessionTypeId}' not found");
             return notFound;
         }
@@ -62,15 +65,24 @@ public class GetAvailableSlots
 
             var ok = req.CreateResponse(HttpStatusCode.OK);
             ok.Headers.Add("Content-Type", "application/json");
-            ok.Headers.Add("Access-Control-Allow-Origin", "*");
+            AddCorsHeaders(ok);
             await ok.WriteStringAsync(JsonSerializer.Serialize(response,
                 new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
             return ok;
+        }
+        catch (AuthenticationFailedException ex)
+        {
+            _logger.LogError(ex, "Calendar authentication failed while fetching available slots");
+            var authError = req.CreateResponse(HttpStatusCode.BadGateway);
+            AddCorsHeaders(authError);
+            await authError.WriteStringAsync("Calendar authentication failed. Check TenantId, ClientId, and ClientSecret in local settings.");
+            return authError;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching available slots");
             var error = req.CreateResponse(HttpStatusCode.InternalServerError);
+            AddCorsHeaders(error);
             await error.WriteStringAsync("An error occurred fetching available slots");
             return error;
         }
@@ -90,9 +102,14 @@ public class GetAvailableSlots
 
         var ok = req.CreateResponse(HttpStatusCode.OK);
         ok.Headers.Add("Content-Type", "application/json");
-        ok.Headers.Add("Access-Control-Allow-Origin", "*");
+        AddCorsHeaders(ok);
         await ok.WriteStringAsync(JsonSerializer.Serialize(all,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
         return ok;
+    }
+
+    private static void AddCorsHeaders(HttpResponseData response)
+    {
+        response.Headers.Add("Access-Control-Allow-Origin", "*");
     }
 }

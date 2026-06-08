@@ -77,6 +77,8 @@ Microsoft Bookings itself still works fine and is still available to me. The pro
 ### Instructions to keep progress updated
 All progress should be updated by AI assistants in the status.md file in this workspace, with date, progress and next steps. irrelevant progress can be deleted to save bloat. It should create enough information to be able to pick up where we left off.
 
+You should also update the README file to show the status of the project right now.
+
 ### Assets and colours that will be useful
 Simian coaching logos are in the assets folder. You may need this when adding logos.
 The colour scheme for simian coaching is a tea green scheme and is as follows:

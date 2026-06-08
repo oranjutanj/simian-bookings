@@ -13,6 +13,7 @@ What exists today:
 - Session configuration in `sessions.json`
 - Unit test suite in `tests/SimianBookings.Tests`
 - Browser smoke-test suite in `smoke-tests/`
+- Global availability windows in `sessions.json` (shared across all session types)
 
 What does not exist yet:
 
@@ -24,7 +25,7 @@ What does not exist yet:
 
 1. The browser loads session types from `GET /api/session-types`.
 2. The user selects a session type and requests available slots.
-3. The backend reads configured availability windows from `sessions.json`.
+3. The backend reads global availability windows from `sessions.json`.
 4. The backend queries Microsoft Graph for busy Outlook calendar periods.
 5. The backend calculates free slots in UK time and returns them as UTC ISO timestamps.
 6. When a booking is confirmed, the backend re-checks availability and creates an Outlook event with a Teams meeting link.
@@ -57,7 +58,7 @@ What does not exist yet:
 
 ### Configuration Model
 
-- `sessions.json` controls bookable session types, durations, buffers, and weekly windows
+- `sessions.json` controls global weekly availability windows plus session types, durations, and buffers
 - `api/local.settings.json` holds local Azure Functions configuration and secrets
 
 ## Repository Layout
@@ -167,16 +168,20 @@ npm run test:headed
 
 Session types are defined in `sessions.json`.
 
-Each session includes:
+The file has two top-level sections:
+
+- `availabilityWindows` (global, applies to all session types)
+- `sessionTypes` (individual session definitions)
+
+Each session type includes:
 
 - `id`
 - `name`
 - `description`
 - `durationMinutes`
 - `bufferMinutes`
-- `availabilityWindows`
 
-Availability windows are defined in UK local time using:
+Global availability windows are defined in UK local time using:
 
 - `daysOfWeek`
 - `startTime`
@@ -198,6 +203,9 @@ This allows session types and availability to be changed without editing code.
 2. Add CI to run unit tests automatically and smoke tests on demand or before release.
 3. Add deployment documentation for Azure Static Web Apps or equivalent static hosting plus Function App deployment.
 4. Add more smoke coverage around the details form and non-destructive happy-path checks.
+5. Add a booking horizon rule (for example no more than 8 weeks in advance) and user-facing message for longer-range requests.
+6. Always display direct contact details (for example `mike@simiancoaching.co.uk`) in the booking UI for manual requests.
+7. Add extensive locale and timezone test coverage, including British Summer Time transitions, GMT/BST boundary dates, and users booking from multiple international time zones.
 
 ## Notes For Future Agents Or Forks
 

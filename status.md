@@ -3,6 +3,10 @@
 ## 2026-06-08 — Unit testing baseline added in VS Code
 
 ### Progress made today
+- Refactored booking availability from per-session windows to global availability windows in `sessions.json`.
+- Updated backend and tests to use global availability while keeping backward compatibility with the old sessions array format.
+- Captured deferred work items (not yet implemented): booking horizon rule and always-visible contact email in UI.
+- Added an explicit requirement to extensively test locale/timezone behavior, including UK BST/GMT transitions and cross-timezone booking scenarios.
 - Expanded `README.md` into a proper project overview / handoff document covering architecture, setup, tests, config, caveats, and next steps.
 - Refactored function dependencies to use interfaces for testability:
 	- `IGraphService` implemented by `GraphService`

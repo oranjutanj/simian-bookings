@@ -6,6 +6,11 @@ public record SessionType(
     string Description,
     int DurationMinutes,
     int BufferMinutes,
+    List<AvailabilityWindow>? AvailabilityWindows = null
+);
+
+public record SessionsConfiguration(
+    List<SessionType> SessionTypes,
     List<AvailabilityWindow> AvailabilityWindows
 );
 

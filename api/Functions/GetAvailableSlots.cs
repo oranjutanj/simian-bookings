@@ -54,7 +54,13 @@ public class GetAvailableSlots
         try
         {
             var busySlots = await _graph.GetBusySlotsAsync(fromUtc, toUtc);
-            var availableSlots = SlotCalculator.GetAvailableSlots(session, busySlots, fromUtc, toUtc);
+            var availabilityWindows = _sessions.GetAvailabilityWindows();
+            var availableSlots = SlotCalculator.GetAvailableSlots(
+                session,
+                availabilityWindows,
+                busySlots,
+                fromUtc,
+                toUtc);
 
             var response = new SlotResponse(
                 session.Id,

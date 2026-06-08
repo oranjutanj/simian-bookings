@@ -13,6 +13,7 @@ public static class SlotCalculator
     /// </summary>
     public static List<DateTime> GetAvailableSlots(
         SessionType session,
+        List<AvailabilityWindow> availabilityWindows,
         List<(DateTime Start, DateTime End)> busyUtcSlots,
         DateTime fromUtc,
         DateTime toUtc,
@@ -27,7 +28,7 @@ public static class SlotCalculator
             var dayLocal = TimeZoneInfo.ConvertTimeFromUtc(day, UkTimeZone);
             var dayName = dayLocal.DayOfWeek.ToString();
 
-            var windows = session.AvailabilityWindows
+            var windows = availabilityWindows
                 .Where(w => w.DaysOfWeek.Contains(dayName))
                 .ToList();
 

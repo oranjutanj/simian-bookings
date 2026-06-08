@@ -60,6 +60,10 @@ public class GetAvailableSlotsTests
 
         var sessions = new Mock<ISessionsService>(MockBehavior.Strict);
         sessions.Setup(s => s.GetById("coaching-45")).Returns(session);
+        sessions.Setup(s => s.GetAvailabilityWindows()).Returns(
+        [
+            new AvailabilityWindow(["Monday", "Tuesday", "Wednesday", "Thursday"], "18:00", "21:00")
+        ]);
 
         var logger = new Mock<ILogger<GetAvailableSlots>>();
         var sut = new GetAvailableSlots(graph.Object, sessions.Object, logger.Object);

@@ -8,15 +8,17 @@ public class SlotCalculatorTests
     [Fact]
     public void GetAvailableSlots_ExcludesBusyAndRespectsBuffer()
     {
+        var availabilityWindows = new List<AvailabilityWindow>
+        {
+            new(["Monday"], "18:00", "21:00")
+        };
+
         var session = new SessionType(
             "coaching-45",
             "Coaching",
             "desc",
             45,
-            15,
-            [
-                new AvailabilityWindow(["Monday"], "18:00", "21:00")
-            ]);
+            15);
 
         var fromUtc = NextUtcDay(DayOfWeek.Monday);
         var toUtc = fromUtc.AddDays(1);
@@ -33,7 +35,7 @@ public class SlotCalculatorTests
             (slot18, slot18.AddMinutes(50))
         };
 
-        var result = SlotCalculator.GetAvailableSlots(session, busy, fromUtc, toUtc, minNoticeHours: 0);
+        var result = SlotCalculator.GetAvailableSlots(session, availabilityWindows, busy, fromUtc, toUtc, minNoticeHours: 0);
 
         Assert.DoesNotContain(slot18, result);
         Assert.Contains(slot19, result);
@@ -43,21 +45,23 @@ public class SlotCalculatorTests
     [Fact]
     public void GetAvailableSlots_AppliesMinimumNotice()
     {
+        var availabilityWindows = new List<AvailabilityWindow>
+        {
+            new([DateTime.UtcNow.DayOfWeek.ToString()], "18:00", "21:00")
+        };
+
         var session = new SessionType(
             "coaching-45",
             "Coaching",
             "desc",
             45,
-            15,
-            [
-                new AvailabilityWindow([DateTime.UtcNow.DayOfWeek.ToString()], "18:00", "21:00")
-            ]);
+            15);
 
         var fromUtc = DateTime.UtcNow.Date;
         var toUtc = fromUtc.AddDays(1);
         var minBookable = DateTime.UtcNow.AddHours(24);
 
-        var result = SlotCalculator.GetAvailableSlots(session, [], fromUtc, toUtc, minNoticeHours: 24);
+        var result = SlotCalculator.GetAvailableSlots(session, availabilityWindows, [], fromUtc, toUtc, minNoticeHours: 24);
 
         Assert.DoesNotContain(result, s => s < minBookable);
     }

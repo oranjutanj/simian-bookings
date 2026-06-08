@@ -7,8 +7,8 @@ var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
     .ConfigureServices(services =>
     {
-        services.AddSingleton<GraphService>();
-        services.AddSingleton<SessionsService>();
+        services.AddSingleton<IGraphService, GraphService>();
+        services.AddSingleton<ISessionsService, SessionsService>();
     })
     .Build();
 

@@ -6,7 +6,20 @@ using SimianBookings.Models;
 
 namespace SimianBookings.Services;
 
-public class GraphService
+public interface IGraphService
+{
+    Task<List<(DateTime Start, DateTime End)>> GetBusySlotsAsync(DateTime fromUtc, DateTime toUtc);
+
+    Task<(string EventId, string TeamsLink)> CreateEventAsync(
+        string subject,
+        string attendeeName,
+        string attendeeEmail,
+        DateTime startUtc,
+        DateTime endUtc,
+        string description);
+}
+
+public class GraphService : IGraphService
 {
     private readonly GraphServiceClient _client;
     private readonly string _userId;

@@ -1,6 +1,9 @@
-# Azure Functions
-api/bin/
-api/obj/
+# Build output
+**/bin/
+**/obj/
+
+# Test output
+TestResults/
 
 # Secrets — never commit
 api/local.settings.json

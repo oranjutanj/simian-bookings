@@ -4,7 +4,14 @@ using SimianBookings.Models;
 
 namespace SimianBookings.Services;
 
-public class SessionsService
+public interface ISessionsService
+{
+    List<SessionType> GetAll();
+
+    SessionType? GetById(string id);
+}
+
+public class SessionsService : ISessionsService
 {
     private readonly List<SessionType> _sessions;
 

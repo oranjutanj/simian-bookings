@@ -1,5 +1,32 @@
 # Simian Bookings — Status
 
+## 2026-06-08 — Unit testing baseline added in VS Code
+
+### Progress made today
+- Refactored function dependencies to use interfaces for testability:
+	- `IGraphService` implemented by `GraphService`
+	- `ISessionsService` implemented by `SessionsService`
+- Updated DI setup in `api/Program.cs` to register interface mappings.
+- Added a new test project at `tests/SimianBookings.Tests` using xUnit + Moq.
+- Added unit tests for:
+	- `SlotCalculator` (busy slot handling, buffer behavior, minimum notice)
+	- `SessionsService` (loading from configured script root and lookup behavior)
+	- `CreateBooking` function (invalid payload, slot conflict, successful booking)
+	- `GetAvailableSlots` function (validation, session lookup, session types endpoint)
+- Verified test execution locally:
+	- `dotnet test tests\\SimianBookings.Tests\\SimianBookings.Tests.csproj`
+	- Result: 10 passed, 0 failed.
+
+### Why this matters
+- We now have fast, repeatable checks around the core booking logic and function request handling.
+- The interface refactor makes it much easier to keep adding tests without requiring live Graph credentials.
+
+### Next suggested steps
+1. Add tests for edge cases in date/time handling (BST/GMT transitions and boundary times).
+2. Add tests for `CreateBooking` OPTIONS preflight CORS response.
+3. Add a GitHub Actions workflow to run tests on every push/PR.
+4. Start Google calendar conflict-check integration and add tests for merged availability.
+
 ## 2026-06-04 — Local dev environment fully running
 
 ### Current state

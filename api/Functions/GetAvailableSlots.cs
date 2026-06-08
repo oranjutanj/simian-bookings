@@ -10,11 +10,11 @@ namespace SimianBookings.Functions;
 
 public class GetAvailableSlots
 {
-    private readonly GraphService _graph;
-    private readonly SessionsService _sessions;
+    private readonly IGraphService _graph;
+    private readonly ISessionsService _sessions;
     private readonly ILogger<GetAvailableSlots> _logger;
 
-    public GetAvailableSlots(GraphService graph, SessionsService sessions, ILogger<GetAvailableSlots> logger)
+    public GetAvailableSlots(IGraphService graph, ISessionsService sessions, ILogger<GetAvailableSlots> logger)
     {
         _graph = graph;
         _sessions = sessions;

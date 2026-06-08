@@ -10,11 +10,11 @@ namespace SimianBookings.Functions;
 
 public class CreateBooking
 {
-    private readonly GraphService _graph;
-    private readonly SessionsService _sessions;
+    private readonly IGraphService _graph;
+    private readonly ISessionsService _sessions;
     private readonly ILogger<CreateBooking> _logger;
 
-    public CreateBooking(GraphService graph, SessionsService sessions, ILogger<CreateBooking> logger)
+    public CreateBooking(IGraphService graph, ISessionsService sessions, ILogger<CreateBooking> logger)
     {
         _graph = graph;
         _sessions = sessions;

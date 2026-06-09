@@ -59,6 +59,9 @@ Add these values from api/local.settings.json (Values object):
 - GoogleRefreshToken
 - GoogleCalendarId
 
+Also verify telemetry settings exist:
+- `APPLICATIONINSIGHTS_CONNECTION_STRING` (or `APPINSIGHTS_INSTRUMENTATIONKEY`)
+
 Save and let the app restart.
 
 Important:
@@ -154,6 +157,14 @@ Troubleshooting quick list
 - Web loads but shows "Could not load sessions":
    usually `PROD_API_BASE_URL` is missing/wrong.
    Check deployed `runtime-config.js` in browser devtools and verify `/api/session-types` responds 200.
+
+- No logs in Application Insights:
+   1. Confirm Function App has `APPLICATIONINSIGHTS_CONNECTION_STRING` in environment variables
+   2. Function App -> Monitoring -> Log stream (check live logs while refreshing booking page)
+   3. Application Insights -> Logs, run:
+       traces
+       | where timestamp > ago(30m)
+       | order by timestamp desc
 
 - Booking API 500s:
   check Function App -> Monitoring -> Log stream for missing setting or Graph permission errors.

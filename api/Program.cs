@@ -7,6 +7,9 @@ var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
     .ConfigureServices(services =>
     {
+        services.AddApplicationInsightsTelemetryWorkerService();
+        services.ConfigureFunctionsApplicationInsights();
+
         // Register GraphService as a singleton, then expose it under both interfaces.
         // IEnumerable<ICalendarSource> injected into functions will receive both
         // GraphService and GoogleCalendarService.

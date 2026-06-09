@@ -101,20 +101,33 @@ public class GetAvailableSlots
     public async Task<HttpResponseData> GetSessionTypes(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "session-types")] HttpRequestData req)
     {
-        var all = _sessions.GetAll().Select(s => new
+        try
         {
-            s.Id,
-            s.Name,
-            s.Description,
-            s.DurationMinutes
-        });
+            var all = _sessions.GetAll().Select(s => new
+            {
+                s.Id,
+                s.Name,
+                s.Description,
+                s.DurationMinutes
+            }).ToList();
 
-        var ok = req.CreateResponse(HttpStatusCode.OK);
-        ok.Headers.Add("Content-Type", "application/json");
-        AddCorsHeaders(ok);
-        await ok.WriteStringAsync(JsonSerializer.Serialize(all,
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-        return ok;
+            _logger.LogInformation("Session types requested. Returning {SessionCount} session types.", all.Count);
+
+            var ok = req.CreateResponse(HttpStatusCode.OK);
+            ok.Headers.Add("Content-Type", "application/json");
+            AddCorsHeaders(ok);
+            await ok.WriteStringAsync(JsonSerializer.Serialize(all,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            return ok;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading session types");
+            var error = req.CreateResponse(HttpStatusCode.InternalServerError);
+            AddCorsHeaders(error);
+            await error.WriteStringAsync("An error occurred loading session types");
+            return error;
+        }
     }
 
     private static void AddCorsHeaders(HttpResponseData response)

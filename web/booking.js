@@ -4,9 +4,27 @@
   const configuredApiBase = (window.SIMIAN_CONFIG?.apiBase || "").trim();
   const defaultProdApiBase = "https://simian-bookings-api-d8hgfzhxa8fjbwfv.ukwest-01.azurewebsites.net/api";
 
+  function normalizeApiBase(rawValue) {
+    if (!rawValue) {
+      return "";
+    }
+
+    let normalized = rawValue.trim();
+    if (!/^https?:\/\//i.test(normalized)) {
+      normalized = `https://${normalized}`;
+    }
+
+    normalized = normalized.replace(/\/+$/, "");
+    if (!/\/api$/i.test(normalized)) {
+      normalized = `${normalized}/api`;
+    }
+
+    return normalized;
+  }
+
   const API_BASE =
     configuredApiBase
-      ? configuredApiBase.replace(/\/+$/, "")
+      ? normalizeApiBase(configuredApiBase)
       : window.location.protocol === "file:" ||
         window.location.hostname === "localhost" ||
         window.location.hostname === "127.0.0.1"
@@ -111,7 +129,7 @@
     } catch (error) {
       console.error("Failed to load sessions", { apiBase: API_BASE, error });
       els.sessionList.innerHTML =
-        `<div class="error-msg">Could not load sessions from ${escapeHtml(API_BASE)}. Please refresh. If this persists, check browser console for details.</div>`;
+        '<div class="error-msg">Could not load sessions. Please refresh the page.</div>';
     }
   }
 
@@ -251,7 +269,7 @@
         error
       });
       els.slotsContainer.innerHTML =
-        '<div class="error-msg">Could not load availability. Check browser console and Function logs for details.</div>';
+        '<div class="error-msg">Could not load availability. Please try again.</div>';
     }
   }
 
@@ -382,7 +400,7 @@
         error
       });
       els.formError.innerHTML =
-        `<div class="error-msg">Could not connect to the booking service (${escapeHtml(API_BASE)}). Please try again.</div>`;
+        '<div class="error-msg">Could not connect to the booking service. Please try again.</div>';
       resetConfirmButton();
     }
   }

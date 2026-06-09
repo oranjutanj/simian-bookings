@@ -1,5 +1,21 @@
 # Simian Bookings — Status
 
+## 2026-06-09 — Generic UI errors retained, backend telemetry/logging improved
+
+### Progress made today
+- Kept end-user frontend errors generic while preserving developer diagnostics in browser console.
+- Added API base normalization in `web/booking.js` so values like `simian-bookings-api-...azurewebsites.net` are normalized to `https://.../api`.
+- Added Application Insights wiring for .NET isolated functions in `api/Program.cs` (`AddApplicationInsightsTelemetryWorkerService` + `ConfigureFunctionsApplicationInsights`).
+- Added required telemetry packages to `api/SimianBookings.csproj`.
+- Added function-side logs around session loading and `GET /api/session-types` in `SessionsService` and `GetAvailableSlots`.
+- Increased log verbosity in `api/host.json` (`Information` level).
+- Verified backend compiles and tests pass: 13 passed, 0 failed.
+
+### Next suggested steps
+1. Ensure `PROD_API_BASE_URL` is set in GitHub variables and re-deploy web.
+2. Ensure `APPLICATIONINSIGHTS_CONNECTION_STRING` exists in Function App settings.
+3. Use Function Log stream + App Insights `traces` query while hitting `/api/session-types`.
+
 ## 2026-06-09 — Deployed web showed "Could not load sessions" (diagnosed + hardened)
 
 ### Progress made today

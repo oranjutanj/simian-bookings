@@ -45,6 +45,7 @@ Important:
 
 - `PROD_API_BASE_URL` must be set in GitHub Actions variables to the live Function API URL.
 - If this variable is wrong/missing, the booking page will fail early with "Could not load sessions".
+- The frontend keeps user-facing errors generic; detailed diagnostics are written to browser console and Function logs.
 
 ### Backend
 
@@ -65,6 +66,7 @@ Important:
 
 - `sessions.json` controls global weekly availability windows plus session types, durations, and buffers
 - `api/local.settings.json` holds local Azure Functions configuration and secrets
+- Function logging is emitted via `ILogger` and configured for Application Insights in isolated worker startup
 
 ## Repository Layout
 

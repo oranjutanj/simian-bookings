@@ -209,6 +209,7 @@ This allows session types and availability to be changed without editing code.
 - The current local booking flow depends on valid Microsoft Graph credentials.
 - If availability loading fails locally, check the Functions terminal output first.
 - A common local failure is an invalid Azure app client secret.
+- A common GitHub deploy failure is Azure Functions publish-profile auth returning Kudu 401 when `SCM Basic Auth Publishing Credentials` is disabled or the publish profile secret is stale.
 
 ## Recommended Next Steps
 

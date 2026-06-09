@@ -1,5 +1,18 @@
 # Simian Bookings — Status
 
+## 2026-06-09 — GitHub Actions Deploy API 401 troubleshooting captured
+
+### Progress made today
+- Investigated GitHub Actions `Deploy API` failure at `ValidateAzureResource` with Kudu `Unauthorized (401)` while using publish-profile auth.
+- Confirmed workflow uses `Azure/functions-action@v1` with publish profile and correct `app-name` field shape in `.github/workflows/deploy.yml`.
+- Added explicit fix steps to `AZURE-MANUAL-SETUP.txt` troubleshooting: enable `SCM Basic Auth Publishing Credentials`, regenerate publish profile, update `AZURE_FUNCTIONAPP_PUBLISH_PROFILE`, re-run workflow.
+- Added a deployment caveat in `README.md` so this known auth issue is easy to spot in future sessions.
+
+### Next suggested steps
+1. In Azure Portal, enable `SCM Basic Auth Publishing Credentials` for the Function App.
+2. Re-download publish profile and replace the GitHub secret `AZURE_FUNCTIONAPP_PUBLISH_PROFILE`.
+3. Re-run the failed workflow run (or push a tiny commit) and confirm `Deploy API` is green.
+
 ## 2026-06-09 — Manual Azure setup guide added (no PowerShell provisioning required)
 
 ### Progress made today

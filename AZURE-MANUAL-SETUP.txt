@@ -137,7 +137,13 @@ Important:
 Troubleshooting quick list
 ----------------------------------------
 - Deploy API fails:
-  usually publish profile secret is wrong/outdated. Re-download and replace secret.
+   usually publish profile secret is wrong/outdated OR SCM basic auth is disabled.
+   Fix checklist:
+   1. Azure Portal -> Function App -> Deployment Center -> FTPS credentials
+   2. Ensure "SCM Basic Auth Publishing Credentials" is ON
+   3. Click "Get publish profile" again and replace GitHub secret `AZURE_FUNCTIONAPP_PUBLISH_PROFILE`
+   4. Re-run workflow
+   5. Confirm workflow `app-name` exactly matches your Function App name
 
 - Deploy Web fails:
   deployment token wrong/expired. Re-copy from SWA and update secret.

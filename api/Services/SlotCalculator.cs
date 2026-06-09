@@ -60,10 +60,14 @@ public static class SlotCalculator
                         continue;
                     }
 
-                    // Check if slot conflicts with any busy period (including buffer)
+                    // Check if slot conflicts with any busy period.
+                    // Buffer is applied on both sides: the slot is blocked if any busy period
+                    // falls within [slot - buffer, slot + duration + buffer], ensuring there
+                    // is breathing room before AND after any calendar event.
+                    var bufferedStartUtc = TimeZoneInfo.ConvertTimeToUtc(slot.AddMinutes(-session.BufferMinutes), UkTimeZone);
                     var bufferedEndUtc = TimeZoneInfo.ConvertTimeToUtc(bufferedEnd, UkTimeZone);
                     var isBusy = busyUtcSlots.Any(b =>
-                        slotUtc < b.End && bufferedEndUtc > b.Start);
+                        bufferedStartUtc < b.End && bufferedEndUtc > b.Start);
 
                     if (!isBusy)
                         available.Add(slotUtc);

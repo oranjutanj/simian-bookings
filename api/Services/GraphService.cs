@@ -76,11 +76,10 @@ public class GraphService : IGraphService, ICalendarSource
                 if (DateTime.TryParse(ev.Start?.DateTime, out var start) &&
                     DateTime.TryParse(ev.End?.DateTime, out var end))
                 {
-                    // Graph returns times in the user's mailbox timezone - convert to UTC
                     var tz = TimeZoneInfo.FindSystemTimeZoneById(_timeZone);
                     busy.Add((
-                        TimeZoneInfo.ConvertTimeToUtc(start, tz),
-                        TimeZoneInfo.ConvertTimeToUtc(end, tz)
+                        ParseGraphDateTimeToUtc(start, ev.Start?.TimeZone, tz),
+                        ParseGraphDateTimeToUtc(end, ev.End?.TimeZone, tz)
                     ));
                 }
             }
@@ -93,6 +92,21 @@ public class GraphService : IGraphService, ICalendarSource
         }
 
         return busy;
+    }
+
+    /// <summary>
+    /// Converts a Graph API dateTime string to UTC, respecting the timezone label returned by Graph.
+    /// Graph may return times in UTC (timeZone = "UTC") or in the mailbox timezone. If it returns UTC,
+    /// we must NOT apply a second conversion — doing so would shift the time by the UTC offset (e.g. -1h in BST).
+    /// </summary>
+    internal static DateTime ParseGraphDateTimeToUtc(DateTime parsed, string? graphTimeZone, TimeZoneInfo mailboxTz)
+    {
+        if (string.Equals(graphTimeZone, "UTC", StringComparison.OrdinalIgnoreCase))
+            return DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+
+        return TimeZoneInfo.ConvertTimeToUtc(
+            DateTime.SpecifyKind(parsed, DateTimeKind.Unspecified),
+            mailboxTz);
     }
 
     /// <summary>

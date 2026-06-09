@@ -351,6 +351,10 @@
     });
 
     if (step === 2) {
+      const heading = document.getElementById('step-2-heading');
+      if (heading && state.selectedSession) {
+        heading.textContent = state.selectedSession.name;
+      }
       const now = new Date();
       loadSlotsForMonth(now.getFullYear(), now.getMonth());
     }

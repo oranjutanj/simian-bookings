@@ -197,7 +197,26 @@ The backend walks each availability window (e.g. Monday 18:00–21:00 UK time) a
 
 A slot is blocked if the period from its start to `start + durationMinutes + bufferMinutes` overlaps any existing calendar event.
 
-**Example:** a 45-minute session with a 15-minute buffer and `slotIntervalMinutes: 15` offers slots at 18:00, 18:15, 18:30 … but once one is booked, the 60-minute block it occupies (45 min session + 15 min buffer) will block any overlapping candidate slots.
+**What the buffer does (and doesn't do):**
+The buffer is purely a *scheduling guard* — it prevents back-to-back bookings by blocking the calendar around a session. It does **not** extend the calendar invite that gets sent to the client. Both you and the client receive an invite for the session duration only.
+
+**Example 1 — buffer blocking the next slot:**
+- Session: 60 min, buffer: 10 min, slots offered every 30 min
+- A client books 19:00. The blocked period runs 19:00–20:10 (60 + 10 min).
+- 19:30 would normally be the next offered slot, but it falls inside the 19:00–20:10 block, so it is hidden.
+- 20:00 also falls inside the block (20:00 < 20:10), so it is also hidden.
+- 20:30 is the first slot that clears the block, so that is what the next client sees.
+
+**Example 2 — buffer with no gap between bookings:**
+- Session: 45 min, buffer: 15 min, slots offered every 60 min (i.e. `slotIntervalMinutes` not set, so it defaults to `durationMinutes + bufferMinutes`)
+- Slots are offered at 18:00, 19:00, 20:00 — one per hour, no overlap possible.
+- A client books 18:00. Their invite is 18:00–18:45. Your calendar is blocked 18:00–19:00, so 19:00 remains available.
+
+**Example 3 — what the client actually sees:**
+- Session: 60 min, buffer: 10 min. Client books 19:30.
+- Client's Teams invite: **19:30–20:30** (session duration only — buffer is invisible to them).
+- Your Outlook calendar is also blocked only for **19:30–20:30** as the event end time.
+- The extra 10 minutes (20:30–20:40) is *logically* reserved (no new booking can start before 20:40) but does not appear as a separate calendar block.
 
 If `slotIntervalMinutes` is not set, it defaults to `durationMinutes + bufferMinutes` — meaning one slot per block with no overlap (original behaviour).
 

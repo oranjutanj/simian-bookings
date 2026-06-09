@@ -29,7 +29,9 @@ public class SlotCalculatorTests
         var slot19 = TimeZoneInfo.ConvertTimeToUtc(localDay.AddHours(19), uk);
         var slot20 = TimeZoneInfo.ConvertTimeToUtc(localDay.AddHours(20), uk);
 
-        // Busy period blocks the 18:00 slot and its 15-minute buffer.
+        // Busy period ends at 18:50. With a 15-minute buffer applied before the new slot,
+        // the 19:00 slot is also blocked (only 10 min gap — less than the 15-min buffer).
+        // The first available slot is 20:00 (70 min gap > 15 min buffer).
         var busy = new List<(DateTime Start, DateTime End)>
         {
             (slot18, slot18.AddMinutes(50))
@@ -38,8 +40,45 @@ public class SlotCalculatorTests
         var result = SlotCalculator.GetAvailableSlots(session, availabilityWindows, busy, fromUtc, toUtc, minNoticeHours: 0);
 
         Assert.DoesNotContain(slot18, result);
-        Assert.Contains(slot19, result);
+        Assert.DoesNotContain(slot19, result); // only 10-min gap before slot — less than 15-min buffer
         Assert.Contains(slot20, result);
+    }
+
+    [Fact]
+    public void GetAvailableSlots_BlocksSlotStartingImmediatelyAfterExistingSession()
+    {
+        // Reproduces: existing session 19:30-20:30, buffer 5 min.
+        // A new 60-min slot at 20:30 must be blocked (zero gap).
+        // The first available slot should be 20:35.
+        var availabilityWindows = new List<AvailabilityWindow>
+        {
+            new(["Monday"], "19:30", "21:30")
+        };
+
+        var session = new SessionType(
+            "coaching-60",
+            "Coaching 60",
+            "desc",
+            60,
+            5,
+            slotIntervalMinutes: 5);
+
+        var fromUtc = NextUtcDay(DayOfWeek.Monday);
+        var toUtc = fromUtc.AddDays(1);
+        var uk = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time");
+        var localDay = TimeZoneInfo.ConvertTimeFromUtc(fromUtc, uk).Date;
+
+        var existingStart = TimeZoneInfo.ConvertTimeToUtc(localDay.AddHours(19).AddMinutes(30), uk);
+        var existingEnd   = TimeZoneInfo.ConvertTimeToUtc(localDay.AddHours(20).AddMinutes(30), uk);
+        var slot2030      = TimeZoneInfo.ConvertTimeToUtc(localDay.AddHours(20).AddMinutes(30), uk);
+        var slot2035      = TimeZoneInfo.ConvertTimeToUtc(localDay.AddHours(20).AddMinutes(35), uk);
+
+        var busy = new List<(DateTime Start, DateTime End)> { (existingStart, existingEnd) };
+
+        var result = SlotCalculator.GetAvailableSlots(session, availabilityWindows, busy, fromUtc, toUtc, minNoticeHours: 0);
+
+        Assert.DoesNotContain(slot2030, result); // zero gap — must be blocked
+        Assert.Contains(slot2035, result);        // 5-min gap exactly matches buffer — available
     }
 
     [Fact]

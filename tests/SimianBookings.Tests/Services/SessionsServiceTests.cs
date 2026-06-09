@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Moq;
 using SimianBookings.Services;
 
 namespace SimianBookings.Tests.Services;
@@ -43,7 +45,7 @@ public class SessionsServiceTests
                 })
                 .Build();
 
-            var service = new SessionsService(config);
+            var service = new SessionsService(config, new Mock<ILogger<SessionsService>>().Object);
 
             var all = service.GetAll();
             Assert.Single(all);
@@ -94,7 +96,7 @@ public class SessionsServiceTests
                 })
                 .Build();
 
-            var service = new SessionsService(config);
+            var service = new SessionsService(config, new Mock<ILogger<SessionsService>>().Object);
 
             Assert.Single(service.GetAll());
             Assert.Single(service.GetAvailabilityWindows());

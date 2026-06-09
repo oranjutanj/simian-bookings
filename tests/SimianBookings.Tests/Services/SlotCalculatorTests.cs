@@ -61,7 +61,7 @@ public class SlotCalculatorTests
             "desc",
             60,
             5,
-            slotIntervalMinutes: 5);
+            SlotIntervalMinutes: 5);
 
         var fromUtc = NextUtcDay(DayOfWeek.Monday);
         var toUtc = fromUtc.AddDays(1);

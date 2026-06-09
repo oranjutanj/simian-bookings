@@ -114,6 +114,11 @@
       margin-bottom: 0.5rem;
     }
     .slots-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .timezone-note {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
     .slot-btn {
       background: var(--white);
       border: 1.5px solid var(--light);
@@ -222,7 +227,7 @@
 <body>
 
 <header>
-  <img src="assets/Simian Coaching Logo_Icon Whiteout.png" alt="Simian Coaching" />
+  <img src="Simian Coaching Logo_Icon Whiteout.png" alt="Simian Coaching" />
   <div>
     <h1>Book a Session</h1>
     <p>simiancoaching.co.uk</p>
@@ -248,6 +253,7 @@
   <div class="step" id="step-2">
     <div class="card">
       <h2>Pick a date and time</h2>
+      <p class="timezone-note" id="timezone-note"></p>
       <div class="week-nav">
         <button id="btn-prev-week">← Prev</button>
         <span id="week-label"></span>
@@ -258,7 +264,7 @@
       </div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-secondary" onclick="goTo(1)">← Back</button>
+      <button class="btn btn-secondary" id="btn-back-to-step-1">← Back</button>
       <button class="btn" id="btn-to-step-3" disabled>Continue →</button>
     </div>
   </div>
@@ -283,8 +289,8 @@
       <div id="form-error"></div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-secondary" onclick="goTo(2)">← Back</button>
-      <button class="btn" id="btn-confirm" onclick="confirmBooking()">Confirm booking</button>
+      <button class="btn btn-secondary" id="btn-back-to-step-2">← Back</button>
+      <button class="btn" id="btn-confirm">Confirm booking</button>
     </div>
   </div>
 
@@ -300,237 +306,7 @@
   </div>
 
 </main>
-
-<script>
-  // ── Config ──────────────────────────────────────────────────────────────────
-  // In production this points to your deployed Azure Function URL.
-  // For local dev, the Functions host runs on 7071.
-  const API_BASE = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:7071/api'
-    : '/api';
-
-  // ── State ───────────────────────────────────────────────────────────────────
-  let sessions = [];
-  let selectedSession = null;
-  let allSlots = [];        // all UTC slot strings for the selected session
-  let selectedSlot = null;  // UTC ISO string
-  let weekOffset = 0;       // 0 = this week's slots, 1 = next week etc
-
-  // ── Boot ────────────────────────────────────────────────────────────────────
-  (async () => {
-    try {
-      const res = await fetch(`${API_BASE}/session-types`);
-      sessions = await res.json();
-      renderSessions();
-    } catch (e) {
-      document.getElementById('session-list').innerHTML =
-        '<div class="error-msg">Could not load sessions. Please refresh the page.</div>';
-    }
-  })();
-
-  // ── Session types ────────────────────────────────────────────────────────────
-  function renderSessions() {
-    const el = document.getElementById('session-list');
-    el.innerHTML = sessions.map(s => `
-      <div class="session-card" data-id="${s.id}" onclick="selectSession('${s.id}')">
-        <span class="duration">${s.durationMinutes} min</span>
-        <h3>${s.name}</h3>
-        <p>${s.description}</p>
-      </div>
-    `).join('');
-  }
-
-  function selectSession(id) {
-    selectedSession = sessions.find(s => s.id === id);
-    document.querySelectorAll('.session-card').forEach(c =>
-      c.classList.toggle('selected', c.dataset.id === id));
-    document.getElementById('btn-to-step-2').disabled = false;
-  }
-
-  // ── Slots ────────────────────────────────────────────────────────────────────
-  async function loadSlots() {
-    document.getElementById('slots-container').innerHTML =
-      '<div class="loading"><div class="spinner"></div><br/>Checking availability…</div>';
-    try {
-      const res = await fetch(`${API_BASE}/slots?sessionType=${selectedSession.id}&weeksAhead=4`);
-      const data = await res.json();
-      allSlots = data.availableSlots;
-      weekOffset = 0;
-      renderSlots();
-    } catch (e) {
-      document.getElementById('slots-container').innerHTML =
-        '<div class="error-msg">Could not load availability. Please try again.</div>';
-    }
-  }
-
-  function getWeekSlots() {
-    // Group all slots and return those in the current weekOffset window
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() + weekOffset * 7);
-    weekStart.setHours(0, 0, 0, 0);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 7);
-    return allSlots.filter(s => {
-      const d = new Date(s);
-      return d >= weekStart && d < weekEnd;
-    });
-  }
-
-  function renderSlots() {
-    const weekSlots = getWeekSlots();
-    updateWeekLabel();
-
-    if (weekSlots.length === 0) {
-      document.getElementById('slots-container').innerHTML =
-        '<p class="no-slots">No available slots this week — try the next week.</p>';
-      return;
-    }
-
-    // Group by local date
-    const groups = {};
-    weekSlots.forEach(s => {
-      const local = new Date(s);
-      const key = local.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(s);
-    });
-
-    const html = Object.entries(groups).map(([day, slots]) => `
-      <div class="day-group">
-        <div class="day-label">${day}</div>
-        <div class="slots-row">
-          ${slots.map(s => `
-            <button class="slot-btn${s === selectedSlot ? ' selected' : ''}"
-              data-slot="${s}"
-              onclick="selectSlot('${s}')">
-              ${new Date(s).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-            </button>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
-
-    document.getElementById('slots-container').innerHTML = html;
-  }
-
-  function selectSlot(utcSlot) {
-    selectedSlot = utcSlot;
-    document.querySelectorAll('.slot-btn').forEach(b =>
-      b.classList.toggle('selected', b.dataset.slot === utcSlot));
-    document.getElementById('btn-to-step-3').disabled = false;
-  }
-
-  function updateWeekLabel() {
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() + weekOffset * 7);
-    weekStart.setHours(0, 0, 0, 0);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-
-    const fmt = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    document.getElementById('week-label').textContent = `${fmt(weekStart)} – ${fmt(weekEnd)}`;
-    document.getElementById('btn-prev-week').disabled = weekOffset <= 0;
-  }
-
-  document.getElementById('btn-prev-week').onclick = () => {
-    if (weekOffset > 0) { weekOffset--; renderSlots(); }
-  };
-  document.getElementById('btn-next-week').onclick = () => {
-    weekOffset++;
-    renderSlots();
-  };
-
-  // ── Navigation ───────────────────────────────────────────────────────────────
-  function goTo(step) {
-    document.querySelectorAll('.step').forEach((el, i) =>
-      el.classList.toggle('active', i + 1 === step));
-
-    if (step === 2) {
-      loadSlots();
-    }
-    if (step === 3) {
-      const start = new Date(selectedSlot);
-      const end = new Date(start.getTime() + selectedSession.durationMinutes * 60000);
-      const fmt = d => d.toLocaleString('en-GB', {
-        weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
-      });
-      document.getElementById('booking-summary').innerHTML = `
-        <strong>${selectedSession.name}</strong><br/>
-        ${fmt(start)} – ${end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-      `;
-    }
-  }
-
-  document.getElementById('btn-to-step-2').onclick = () => goTo(2);
-  document.getElementById('btn-to-step-3').onclick = () => goTo(3);
-
-  // ── Confirm booking ──────────────────────────────────────────────────────────
-  async function confirmBooking() {
-    const name = document.getElementById('input-name').value.trim();
-    const email = document.getElementById('input-email').value.trim();
-    const message = document.getElementById('input-message').value.trim();
-    const errorEl = document.getElementById('form-error');
-
-    if (!name || !email) {
-      errorEl.innerHTML = '<div class="error-msg">Please fill in your name and email address.</div>';
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errorEl.innerHTML = '<div class="error-msg">Please enter a valid email address.</div>';
-      return;
-    }
-    errorEl.innerHTML = '';
-
-    const btn = document.getElementById('btn-confirm');
-    btn.disabled = true;
-    btn.textContent = 'Booking…';
-
-    try {
-      const res = await fetch(`${API_BASE}/bookings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionTypeId: selectedSession.id,
-          startTimeUtc: selectedSlot,
-          attendeeName: name,
-          attendeeEmail: email,
-          message: message || null
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        errorEl.innerHTML = `<div class="error-msg">${data.error || 'Something went wrong. Please try again.'}</div>`;
-        btn.disabled = false;
-        btn.textContent = 'Confirm booking';
-        return;
-      }
-
-      // Success!
-      const start = new Date(selectedSlot);
-      const end = new Date(start.getTime() + selectedSession.durationMinutes * 60000);
-      document.getElementById('confirm-text').innerHTML = `
-        <strong>${name}</strong>, your <strong>${selectedSession.name}</strong> is confirmed for<br/>
-        <strong>${start.toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</strong>.<br/><br/>
-        A calendar invite has been sent to <strong>${email}</strong>.
-      `;
-
-      if (data.teamsLink) {
-        const link = document.getElementById('teams-link-btn');
-        link.href = data.teamsLink;
-        link.style.display = 'inline-block';
-      }
-
-      goTo(4);
-    } catch (e) {
-      errorEl.innerHTML = '<div class="error-msg">Could not connect to the booking service. Please try again.</div>';
-      btn.disabled = false;
-      btn.textContent = 'Confirm booking';
-    }
-  }
-</script>
+<script src="./runtime-config.js"></script>
+<script src="./booking.js" defer></script>
 </body>
 </html>

@@ -15,10 +15,10 @@ public class GetAvailableSlotsTests
     [Fact]
     public async Task ReturnsBadRequest_WhenSessionTypeMissing()
     {
-        var graph = new Mock<IGraphService>(MockBehavior.Strict);
+        var calendarSource = new Mock<ICalendarSource>(MockBehavior.Strict);
         var sessions = new Mock<ISessionsService>(MockBehavior.Strict);
         var logger = new Mock<ILogger<GetAvailableSlots>>();
-        var sut = new GetAvailableSlots(graph.Object, sessions.Object, logger.Object);
+        var sut = new GetAvailableSlots([calendarSource.Object], sessions.Object, logger.Object);
 
         var request = NewRequest("http://localhost/api/slots");
 
@@ -30,12 +30,12 @@ public class GetAvailableSlotsTests
     [Fact]
     public async Task ReturnsNotFound_WhenSessionTypeUnknown()
     {
-        var graph = new Mock<IGraphService>(MockBehavior.Strict);
+        var calendarSource = new Mock<ICalendarSource>(MockBehavior.Strict);
         var sessions = new Mock<ISessionsService>(MockBehavior.Strict);
         sessions.Setup(s => s.GetById("missing")).Returns((SessionType?)null);
 
         var logger = new Mock<ILogger<GetAvailableSlots>>();
-        var sut = new GetAvailableSlots(graph.Object, sessions.Object, logger.Object);
+        var sut = new GetAvailableSlots([calendarSource.Object], sessions.Object, logger.Object);
 
         var request = NewRequest("http://localhost/api/slots?sessionType=missing");
 
@@ -55,8 +55,8 @@ public class GetAvailableSlotsTests
             15,
             [new AvailabilityWindow(["Monday", "Tuesday", "Wednesday", "Thursday"], "18:00", "21:00")]);
 
-        var graph = new Mock<IGraphService>(MockBehavior.Strict);
-        graph.Setup(g => g.GetBusySlotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync([]);
+        var calendarSource = new Mock<ICalendarSource>(MockBehavior.Strict);
+        calendarSource.Setup(g => g.GetBusySlotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync([]);
 
         var sessions = new Mock<ISessionsService>(MockBehavior.Strict);
         sessions.Setup(s => s.GetById("coaching-45")).Returns(session);
@@ -66,7 +66,7 @@ public class GetAvailableSlotsTests
         ]);
 
         var logger = new Mock<ILogger<GetAvailableSlots>>();
-        var sut = new GetAvailableSlots(graph.Object, sessions.Object, logger.Object);
+        var sut = new GetAvailableSlots([calendarSource.Object], sessions.Object, logger.Object);
 
         var request = NewRequest("http://localhost/api/slots?sessionType=coaching-45&weeksAhead=1");
 
@@ -81,7 +81,7 @@ public class GetAvailableSlotsTests
     [Fact]
     public async Task GetSessionTypes_ReturnsAllConfiguredSessions()
     {
-        var graph = new Mock<IGraphService>(MockBehavior.Strict);
+        var calendarSource = new Mock<ICalendarSource>(MockBehavior.Strict);
         var sessions = new Mock<ISessionsService>(MockBehavior.Strict);
         sessions.Setup(s => s.GetAll()).Returns(
         [
@@ -90,7 +90,7 @@ public class GetAvailableSlotsTests
         ]);
 
         var logger = new Mock<ILogger<GetAvailableSlots>>();
-        var sut = new GetAvailableSlots(graph.Object, sessions.Object, logger.Object);
+        var sut = new GetAvailableSlots([calendarSource.Object], sessions.Object, logger.Object);
 
         var request = NewRequest("http://localhost/api/session-types");
 

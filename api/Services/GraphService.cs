@@ -6,10 +6,12 @@ using SimianBookings.Models;
 
 namespace SimianBookings.Services;
 
+/// <summary>
+/// Outlook-specific operations: creates calendar events with Teams meeting links.
+/// Use ICalendarSource for busy-slot checking (implemented by both Graph and Google).
+/// </summary>
 public interface IGraphService
 {
-    Task<List<(DateTime Start, DateTime End)>> GetBusySlotsAsync(DateTime fromUtc, DateTime toUtc);
-
     Task<(string EventId, string TeamsLink)> CreateEventAsync(
         string subject,
         string attendeeName,
@@ -17,9 +19,17 @@ public interface IGraphService
         DateTime startUtc,
         DateTime endUtc,
         string description);
+
+    Task SendBookingNotificationAsync(
+        string attendeeName,
+        string attendeeEmail,
+        string sessionName,
+        DateTime startUtc,
+        string teamsLink,
+        string? message);
 }
 
-public class GraphService : IGraphService
+public class GraphService : IGraphService, ICalendarSource
 {
     private readonly GraphServiceClient _client;
     private readonly string _userId;
@@ -120,6 +130,8 @@ public class GraphService : IGraphService
             },
             IsOnlineMeeting = true,
             OnlineMeetingProvider = OnlineMeetingProviderType.TeamsForBusiness,
+            IsReminderOn = true,
+            ReminderMinutesBeforeStart = 60,
             Attendees =
             [
                 new Attendee
@@ -138,5 +150,55 @@ public class GraphService : IGraphService
         var teamsLink = created?.OnlineMeeting?.JoinUrl ?? string.Empty;
 
         return (created?.Id ?? string.Empty, teamsLink);
+    }
+
+    /// <summary>
+    /// Sends a booking notification email to the organizer (CalendarUserId).
+    /// </summary>
+    public async Task SendBookingNotificationAsync(
+        string attendeeName,
+        string attendeeEmail,
+        string sessionName,
+        DateTime startUtc,
+        string teamsLink,
+        string? message)
+    {
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(_timeZone);
+        var startLocal = TimeZoneInfo.ConvertTimeFromUtc(startUtc, tz);
+        var friendlyTime = startLocal.ToString("dddd d MMMM yyyy 'at' h:mmtt");
+
+        var messageSection = string.IsNullOrWhiteSpace(message)
+            ? string.Empty
+            : $"<p><strong>Their message:</strong><br/>{System.Web.HttpUtility.HtmlEncode(message)}</p>";
+
+        var htmlBody = $"""
+            <p>A new session has been booked through Simian Coaching.</p>
+            <table cellpadding="6" style="border-collapse:collapse;font-family:sans-serif;">
+              <tr><td><strong>Session</strong></td><td>{sessionName}</td></tr>
+              <tr><td><strong>When</strong></td><td>{friendlyTime}</td></tr>
+              <tr><td><strong>Who</strong></td><td>{System.Web.HttpUtility.HtmlEncode(attendeeName)} ({System.Web.HttpUtility.HtmlEncode(attendeeEmail)})</td></tr>
+              <tr><td><strong>Teams link</strong></td><td><a href="{teamsLink}">{teamsLink}</a></td></tr>
+            </table>
+            {messageSection}
+            """;
+
+        var mail = new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
+        {
+            Message = new Message
+            {
+                Subject = $"New Booking: {sessionName} with {attendeeName}",
+                Body = new ItemBody { ContentType = BodyType.Html, Content = htmlBody },
+                ToRecipients =
+                [
+                    new Recipient
+                    {
+                        EmailAddress = new EmailAddress { Address = _userId }
+                    }
+                ]
+            },
+            SaveToSentItems = false
+        };
+
+        await _client.Users[_userId].SendMail.PostAsync(mail);
     }
 }

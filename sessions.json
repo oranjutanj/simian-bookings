@@ -2,24 +2,34 @@
   "availabilityWindows": [
     {
       "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday"],
-      "startTime": "18:00",
-      "endTime": "21:00"
+      "startTime": "19:30",
+      "endTime": "21:30"
     }
   ],
   "sessionTypes": [
+    {
+      "id": "intro-15",
+      "name": "Introduction Call (15 min)",
+      "description": "A short introductory call to find out a bit about you and what you're hoping to get from coaching. No preparation needed — just come as you are.",
+      "durationMinutes": 15,
+      "bufferMinutes": 0,
+      "slotIntervalMinutes": 15
+    },
     {
       "id": "coaching-45",
       "name": "Coaching Session (45 min)",
       "description": "A focused 45-minute one-to-one coaching session. We'll work on the topics most important to you — whether that's career direction, leadership, confidence, or navigating a specific challenge.",
       "durationMinutes": 45,
-      "bufferMinutes": 15
+      "bufferMinutes": 5,
+      "slotIntervalMinutes": 15
     },
     {
       "id": "coaching-60",
       "name": "Coaching Session (60 min)",
       "description": "A deeper 60-minute one-to-one coaching session, giving us more space to explore your goals and work through challenges together.",
       "durationMinutes": 60,
-      "bufferMinutes": 15
+      "bufferMinutes": 5,
+      "slotIntervalMinutes": 15
     }
   ]
 }

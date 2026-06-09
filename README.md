@@ -17,9 +17,7 @@ What exists today:
 
 What does not exist yet:
 
-- Google Calendar conflict checking
-- Production Azure deployment
-- CI workflow
+- Production Azure resources (manual setup still required)
 
 ## How It Works
 
@@ -34,12 +32,14 @@ What does not exist yet:
 
 ### Frontend
 
-- Single static page: `web/index.html`
+- Static HTML shell: `web/index.html`
+- Frontend logic: `web/booking.js`
+- Runtime config: `web/runtime-config.js` (generated in deploy from GitHub variable `PROD_API_BASE_URL`)
 - No framework
 - Reads API from:
 
   - `http://localhost:7071/api` when opened locally via `file://` or localhost
-  - `/api` in deployed environments
+  - `window.SIMIAN_CONFIG.apiBase` in deployed environments (written by workflow)
 
 ### Backend
 
@@ -156,6 +156,8 @@ The smoke suite:
 - checks session cards load
 - checks the availability step can be reached without the frontend error state
 - checks basic session-selection behavior
+- checks timezone rendering behavior for international users (for example US timezones)
+- checks cross-day timezone conversion when UTC slots cross a local date boundary
 
 If you want to watch the browser:
 
@@ -178,8 +180,19 @@ Each session type includes:
 - `id`
 - `name`
 - `description`
-- `durationMinutes`
-- `bufferMinutes`
+- `durationMinutes` — how long the session lasts
+- `bufferMinutes` — gap reserved after the session ends before the next booking can start
+- `slotIntervalMinutes` *(optional)* — how frequently start times are offered within an availability window
+
+### How slot generation works
+
+The backend walks each availability window (e.g. Monday 18:00–21:00 UK time) and generates candidate start times spaced `slotIntervalMinutes` apart. Each candidate is then checked against both Outlook and Google Calendar for conflicts.
+
+A slot is blocked if the period from its start to `start + durationMinutes + bufferMinutes` overlaps any existing calendar event.
+
+**Example:** a 45-minute session with a 15-minute buffer and `slotIntervalMinutes: 15` offers slots at 18:00, 18:15, 18:30 … but once one is booked, the 60-minute block it occupies (45 min session + 15 min buffer) will block any overlapping candidate slots.
+
+If `slotIntervalMinutes` is not set, it defaults to `durationMinutes + bufferMinutes` — meaning one slot per block with no overlap (original behaviour).
 
 Global availability windows are defined in UK local time using:
 
@@ -199,13 +212,12 @@ This allows session types and availability to be changed without editing code.
 
 ## Recommended Next Steps
 
-1. Add Google Calendar conflict checking alongside Outlook.
-2. Add CI to run unit tests automatically and smoke tests on demand or before release.
-3. Add deployment documentation for Azure Static Web Apps or equivalent static hosting plus Function App deployment.
-4. Add more smoke coverage around the details form and non-destructive happy-path checks.
-5. Add a booking horizon rule (for example no more than 8 weeks in advance) and user-facing message for longer-range requests.
+1. Provision Azure resources manually using AZURE-MANUAL-SETUP.txt.
+2. Add GitHub Actions secrets and push to main to enable automatic deploys.
+3. Add more smoke coverage around the details form and non-destructive happy-path checks.
+4. Add a booking horizon rule (for example no more than 8 weeks in advance) and user-facing message for longer-range requests.
 6. Always display direct contact details (for example `mike@simiancoaching.co.uk`) in the booking UI for manual requests.
-7. Add extensive locale and timezone test coverage, including British Summer Time transitions, GMT/BST boundary dates, and users booking from multiple international time zones.
+7. Expand timezone smoke scenarios further (for example EU/APAC locales and confirmation text assertions) beyond current US-focused coverage.
 
 ## Notes For Future Agents Or Forks
 

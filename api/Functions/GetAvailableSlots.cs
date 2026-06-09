@@ -11,13 +11,13 @@ namespace SimianBookings.Functions;
 
 public class GetAvailableSlots
 {
-    private readonly IGraphService _graph;
+    private readonly IEnumerable<ICalendarSource> _calendarSources;
     private readonly ISessionsService _sessions;
     private readonly ILogger<GetAvailableSlots> _logger;
 
-    public GetAvailableSlots(IGraphService graph, ISessionsService sessions, ILogger<GetAvailableSlots> logger)
+    public GetAvailableSlots(IEnumerable<ICalendarSource> calendarSources, ISessionsService sessions, ILogger<GetAvailableSlots> logger)
     {
-        _graph = graph;
+        _calendarSources = calendarSources;
         _sessions = sessions;
         _logger = logger;
     }
@@ -53,7 +53,10 @@ public class GetAvailableSlots
 
         try
         {
-            var busySlots = await _graph.GetBusySlotsAsync(fromUtc, toUtc);
+            var busyTasks = _calendarSources.Select(s => s.GetBusySlotsAsync(fromUtc, toUtc));
+            var busyResults = await Task.WhenAll(busyTasks);
+            var busySlots = busyResults.SelectMany(slots => slots).ToList();
+
             var availabilityWindows = _sessions.GetAvailabilityWindows();
             var availableSlots = SlotCalculator.GetAvailableSlots(
                 session,

@@ -15,10 +15,11 @@ public class CreateBookingTests
     [Fact]
     public async Task ReturnsBadRequest_WhenBodyInvalidJson()
     {
+        var calendarSource = new Mock<ICalendarSource>(MockBehavior.Strict);
         var graph = new Mock<IGraphService>(MockBehavior.Strict);
         var sessions = new Mock<ISessionsService>(MockBehavior.Strict);
         var logger = new Mock<ILogger<CreateBooking>>();
-        var sut = new CreateBooking(graph.Object, sessions.Object, logger.Object);
+        var sut = new CreateBooking([calendarSource.Object], graph.Object, sessions.Object, logger.Object);
 
         var request = NewRequest("POST", "{invalid-json");
 
@@ -51,18 +52,19 @@ public class CreateBookingTests
             }
             """;
 
-        var graph = new Mock<IGraphService>(MockBehavior.Strict);
-        graph
+        var calendarSource = new Mock<ICalendarSource>(MockBehavior.Strict);
+        calendarSource
             .Setup(g => g.GetBusySlotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync([
                 (startUtc.AddMinutes(-5), startUtc.AddMinutes(10))
             ]);
 
+        var graph = new Mock<IGraphService>(MockBehavior.Strict);
         var sessions = new Mock<ISessionsService>(MockBehavior.Strict);
         sessions.Setup(s => s.GetById("coaching-45")).Returns(session);
 
         var logger = new Mock<ILogger<CreateBooking>>();
-        var sut = new CreateBooking(graph.Object, sessions.Object, logger.Object);
+        var sut = new CreateBooking([calendarSource.Object], graph.Object, sessions.Object, logger.Object);
 
         var request = NewRequest("POST", bookingJson);
 
@@ -103,10 +105,12 @@ public class CreateBookingTests
             }
             """;
 
-        var graph = new Mock<IGraphService>(MockBehavior.Strict);
-        graph
+        var calendarSource = new Mock<ICalendarSource>(MockBehavior.Strict);
+        calendarSource
             .Setup(g => g.GetBusySlotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync([]);
+
+        var graph = new Mock<IGraphService>(MockBehavior.Strict);
         graph
             .Setup(g => g.CreateEventAsync(
                 It.IsAny<string>(),
@@ -121,7 +125,7 @@ public class CreateBookingTests
         sessions.Setup(s => s.GetById("coaching-60")).Returns(session);
 
         var logger = new Mock<ILogger<CreateBooking>>();
-        var sut = new CreateBooking(graph.Object, sessions.Object, logger.Object);
+        var sut = new CreateBooking([calendarSource.Object], graph.Object, sessions.Object, logger.Object);
 
         var request = NewRequest("POST", bookingJson);
 

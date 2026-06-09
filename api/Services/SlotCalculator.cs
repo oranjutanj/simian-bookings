@@ -37,6 +37,11 @@ public static class SlotCalculator
                 var windowStartLocal = dayLocal.Date + TimeSpan.Parse(window.StartTime);
                 var windowEndLocal = dayLocal.Date + TimeSpan.Parse(window.EndTime);
 
+                // SlotIntervalMinutes controls how frequently slots are offered.
+                // If not set, defaults to duration+buffer (one slot per booking block).
+                // Set to a smaller value (e.g. 15) to offer overlapping start times.
+                var stepMinutes = session.SlotIntervalMinutes ?? (session.DurationMinutes + session.BufferMinutes);
+
                 var slot = windowStartLocal;
                 while (slot.AddMinutes(session.DurationMinutes) <= windowEndLocal)
                 {
@@ -51,7 +56,7 @@ public static class SlotCalculator
                     // Enforce minimum notice
                     if (slotUtc < minBookableUtc)
                     {
-                        slot = slot.AddMinutes(session.DurationMinutes + session.BufferMinutes);
+                        slot = slot.AddMinutes(stepMinutes);
                         continue;
                     }
 
@@ -63,7 +68,7 @@ public static class SlotCalculator
                     if (!isBusy)
                         available.Add(slotUtc);
 
-                    slot = slot.AddMinutes(session.DurationMinutes + session.BufferMinutes);
+                    slot = slot.AddMinutes(stepMinutes);
                 }
             }
         }

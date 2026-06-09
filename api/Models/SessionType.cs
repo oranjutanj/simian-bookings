@@ -6,7 +6,8 @@ public record SessionType(
     string Description,
     int DurationMinutes,
     int BufferMinutes,
-    List<AvailabilityWindow>? AvailabilityWindows = null
+    List<AvailabilityWindow>? AvailabilityWindows = null,
+    int? SlotIntervalMinutes = null
 );
 
 public record SessionsConfiguration(

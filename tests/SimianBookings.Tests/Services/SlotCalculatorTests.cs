@@ -66,6 +66,58 @@ public class SlotCalculatorTests
         Assert.DoesNotContain(result, s => s < minBookable);
     }
 
+    [Fact]
+    public void GetAvailableSlots_UsesGmtOffsetDuringWinter()
+    {
+        var availabilityWindows = new List<AvailabilityWindow>
+        {
+            new(["Monday"], "18:00", "19:00")
+        };
+
+        var session = new SessionType(
+            "coaching-45",
+            "Coaching",
+            "desc",
+            45,
+            15);
+
+        var fromUtc = NextUtcDateInMonth(DayOfWeek.Monday, 1);
+        var toUtc = fromUtc;
+        var uk = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time");
+        var localDay = TimeZoneInfo.ConvertTimeFromUtc(fromUtc, uk).Date;
+        var expectedSlot = TimeZoneInfo.ConvertTimeToUtc(localDay.AddHours(18), uk);
+
+        var result = SlotCalculator.GetAvailableSlots(session, availabilityWindows, [], fromUtc, toUtc, minNoticeHours: 0);
+
+        Assert.Contains(expectedSlot, result);
+    }
+
+    [Fact]
+    public void GetAvailableSlots_UsesBstOffsetDuringSummer()
+    {
+        var availabilityWindows = new List<AvailabilityWindow>
+        {
+            new(["Monday"], "18:00", "19:00")
+        };
+
+        var session = new SessionType(
+            "coaching-45",
+            "Coaching",
+            "desc",
+            45,
+            15);
+
+        var fromUtc = NextUtcDateInMonth(DayOfWeek.Monday, 7);
+        var toUtc = fromUtc;
+        var uk = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time");
+        var localDay = TimeZoneInfo.ConvertTimeFromUtc(fromUtc, uk).Date;
+        var expectedSlot = TimeZoneInfo.ConvertTimeToUtc(localDay.AddHours(18), uk);
+
+        var result = SlotCalculator.GetAvailableSlots(session, availabilityWindows, [], fromUtc, toUtc, minNoticeHours: 0);
+
+        Assert.Contains(expectedSlot, result);
+    }
+
     private static DateTime NextUtcDay(DayOfWeek targetDay)
     {
         var day = DateTime.UtcNow.Date.AddDays(1);
@@ -75,5 +127,26 @@ public class SlotCalculatorTests
         }
 
         return day;
+    }
+
+    private static DateTime NextUtcDateInMonth(DayOfWeek targetDay, int month)
+    {
+        var minDate = DateTime.UtcNow.Date.AddDays(7);
+
+        for (var year = DateTime.UtcNow.Year; year <= DateTime.UtcNow.Year + 10; year++)
+        {
+            var day = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+            while (day.DayOfWeek != targetDay)
+            {
+                day = day.AddDays(1);
+            }
+
+            if (day >= minDate)
+            {
+                return day;
+            }
+        }
+
+        throw new InvalidOperationException("Could not find a future date for the requested month and day.");
     }
 }

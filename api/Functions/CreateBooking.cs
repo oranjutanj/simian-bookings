@@ -10,12 +10,14 @@ namespace SimianBookings.Functions;
 
 public class CreateBooking
 {
+    private readonly IEnumerable<ICalendarSource> _calendarSources;
     private readonly IGraphService _graph;
     private readonly ISessionsService _sessions;
     private readonly ILogger<CreateBooking> _logger;
 
-    public CreateBooking(IGraphService graph, ISessionsService sessions, ILogger<CreateBooking> logger)
+    public CreateBooking(IEnumerable<ICalendarSource> calendarSources, IGraphService graph, ISessionsService sessions, ILogger<CreateBooking> logger)
     {
+        _calendarSources = calendarSources;
         _graph = graph;
         _sessions = sessions;
         _logger = logger;
@@ -77,10 +79,12 @@ public class CreateBooking
 
         try
         {
-            // Double-check availability before creating
-            var busySlots = await _graph.GetBusySlotsAsync(
+            // Double-check availability across ALL calendar sources before creating
+            var busyTasks = _calendarSources.Select(s => s.GetBusySlotsAsync(
                 startUtc.AddMinutes(-1),
-                endUtc.AddMinutes(session.BufferMinutes + 1));
+                endUtc.AddMinutes(session.BufferMinutes + 1)));
+            var busyResults = await Task.WhenAll(busyTasks);
+            var busySlots = busyResults.SelectMany(slots => slots).ToList();
 
             var isConflict = busySlots.Any(b => startUtc < b.End && endUtc > b.Start);
             if (isConflict)
@@ -105,6 +109,14 @@ public class CreateBooking
                 startUtc,
                 endUtc,
                 description);
+
+            await _graph.SendBookingNotificationAsync(
+                booking.AttendeeName,
+                booking.AttendeeEmail,
+                session.Name,
+                startUtc,
+                teamsLink,
+                booking.Message);
 
             var ok = req.CreateResponse(HttpStatusCode.OK);
             AddCorsHeaders(ok);

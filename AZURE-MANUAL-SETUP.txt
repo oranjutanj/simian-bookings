@@ -1,0 +1,149 @@
+SIMIAN BOOKINGS - MANUAL AZURE SETUP (NO POWERSHELL SCRIPT)
+
+This is a one-time manual setup guide for Azure + GitHub Actions.
+After setup, every push to main deploys automatically.
+
+----------------------------------------
+0) Prerequisites
+----------------------------------------
+1. Azure subscription you can create resources in.
+2. GitHub repo with this code and workflow file:
+   .github/workflows/deploy.yml
+3. Microsoft Graph app registration already created for booking API access.
+
+
+----------------------------------------
+1) Create Azure resources in Portal
+----------------------------------------
+Create these resources in Azure Portal:
+
+1. Resource Group
+   - Name: simian-bookings-rg
+   - Region: UK South
+
+2. Storage Account (for Functions)
+   - Name: simianbookingsfnsa (or another globally unique lowercase name)
+   - Region: UK South
+   - Performance: Standard
+   - Redundancy: LRS
+
+3. Function App
+   - Name: simian-bookings-api
+   - Runtime stack: .NET
+   - Version: .NET 8 (Isolated)
+   - OS: Windows
+   - Region: UK South
+   - Hosting plan: Consumption
+   - Storage account: use the storage account from step 2
+
+4. Static Web App
+   - Name: simian-bookings-web
+   - Plan type: Free
+   - Region: West Europe (SWA availability)
+   - Deployment source: Other (or skip GitHub wiring here; GitHub Actions handles deploy)
+
+
+----------------------------------------
+2) Add Function App settings (Portal)
+----------------------------------------
+Function App -> Settings -> Environment variables
+Add these values from api/local.settings.json (Values object):
+
+- TenantId
+- ClientId
+- ClientSecret
+- CalendarUserId
+- CalendarTimeZone
+- GoogleClientId
+- GoogleClientSecret
+- GoogleRefreshToken
+- GoogleCalendarId
+
+Save and let the app restart.
+
+Important:
+- CalendarUserId should be mike@simiancoaching.co.uk if Mike is organizer.
+- Graph app permissions must include Calendars.ReadWrite and Mail.Send (Application), with admin consent granted.
+
+
+----------------------------------------
+3) Add required GitHub secrets
+----------------------------------------
+Repo -> Settings -> Secrets and variables -> Actions
+Create these 2 secrets:
+
+1. AZURE_FUNCTIONAPP_PUBLISH_PROFILE
+   - In Azure Portal: Function App -> Overview -> Get publish profile
+   - Open downloaded file and paste full XML as secret value
+
+2. AZURE_STATIC_WEB_APPS_API_TOKEN
+   - In Azure Portal: Static Web App -> Manage deployment token
+   - Copy token value and paste as secret
+
+
+----------------------------------------
+4) Confirm workflow file matches resource names
+----------------------------------------
+In .github/workflows/deploy.yml:
+- deploy-api job app-name must be simian-bookings-api
+
+In GitHub repo settings (not in code):
+- Settings -> Secrets and variables -> Actions -> Variables
+- Add variable: PROD_API_BASE_URL
+- Value should be your Function API base URL, for example:
+   https://simian-bookings-api-d8hgfzhxa8fjbwfv.ukwest-01.azurewebsites.net/api
+
+Important:
+- You do NOT need to edit web/booking.js for each deployment.
+- The workflow writes web/runtime-config.js at deploy time using PROD_API_BASE_URL.
+- If you rename the Function App later, just update PROD_API_BASE_URL once.
+
+
+----------------------------------------
+5) Trigger first deployment
+----------------------------------------
+1. Commit your latest changes.
+2. Push to main.
+3. In GitHub -> Actions, open "Deploy to Azure" workflow run.
+4. Ensure all jobs are green:
+   - Build & Test
+   - Deploy API
+   - Deploy Web
+
+
+----------------------------------------
+6) Post-deploy checks
+----------------------------------------
+1. Open Static Web App URL and complete a test booking.
+2. Confirm:
+   - booking appears in Mike's calendar
+   - confirmation email/notification arrives
+   - reminder is present on event
+3. If browser shows CORS issue:
+   - Function App -> API -> CORS
+   - add your Static Web App URL
+
+
+----------------------------------------
+7) Optional custom domain (book.simiancoaching.co.uk)
+----------------------------------------
+1. Static Web App -> Custom domains -> Add
+2. Add book.simiancoaching.co.uk
+3. In DNS, create CNAME as instructed by Azure
+4. Wait for validation + managed certificate issuance
+
+
+----------------------------------------
+Troubleshooting quick list
+----------------------------------------
+- Deploy API fails:
+  usually publish profile secret is wrong/outdated. Re-download and replace secret.
+
+- Deploy Web fails:
+  deployment token wrong/expired. Re-copy from SWA and update secret.
+
+- Booking API 500s:
+  check Function App -> Monitoring -> Log stream for missing setting or Graph permission errors.
+
+- No organizer notifications:
+  check Mail.Send app permission and admin consent.

@@ -34,9 +34,12 @@
   const state = {
     sessions: [],
     selectedSession: null,
-    allSlots: [],
     selectedSlot: null,
-    weekOffset: 0,
+    // Calendar state
+    viewYear: null,
+    viewMonth: null,    // 0-indexed
+    selectedDate: null, // "YYYY-MM-DD"
+    monthSlots: {},     // { "YYYY-MM-DD": ["ISO string", ...] }
     userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
   };
 
@@ -44,10 +47,16 @@
     sessionList: document.getElementById("session-list"),
     chooseTimeButton: document.getElementById("btn-to-step-2"),
     continueButton: document.getElementById("btn-to-step-3"),
-    slotsContainer: document.getElementById("slots-container"),
-    prevWeekButton: document.getElementById("btn-prev-week"),
-    nextWeekButton: document.getElementById("btn-next-week"),
-    weekLabel: document.getElementById("week-label"),
+    // Calendar elements
+    prevMonthButton: document.getElementById("btn-prev-month"),
+    nextMonthButton: document.getElementById("btn-next-month"),
+    monthLabel: document.getElementById("month-label"),
+    calendarLoading: document.getElementById("calendar-loading"),
+    calendarGrid: document.getElementById("calendar-grid"),
+    timeSlotsPlaceholder: document.getElementById("time-slots-placeholder"),
+    timeSlotsContent: document.getElementById("time-slots-content"),
+    selectedDayHeading: document.getElementById("selected-day-heading"),
+    timeSlotsList: document.getElementById("time-slots-list"),
     timeZoneNote: document.getElementById("timezone-note"),
     bookingSummary: document.getElementById("booking-summary"),
     formError: document.getElementById("form-error"),
@@ -101,19 +110,169 @@
     els.timeZoneNote.textContent = `Times are shown in your local timezone (${state.userTimeZone}). `;
   }
 
-  function getCurrentWeekRange() {
+  function toDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function getTodayKey() {
+    return toDateKey(new Date());
+  }
+
+  function getMonthRange(year, month) {
+    const from = new Date(Date.UTC(year, month, 1));
+    const to = new Date(Date.UTC(year, month + 1, 1));
+    return { from, to };
+  }
+
+  function showCalendarLoading(visible) {
+    els.calendarLoading.style.display = visible ? "flex" : "none";
+    els.calendarGrid.style.display = visible ? "none" : "grid";
+  }
+
+  function showTimeSlotsContent(visible) {
+    els.timeSlotsPlaceholder.style.display = visible ? "none" : "block";
+    els.timeSlotsContent.style.display = visible ? "block" : "none";
+  }
+
+  function renderCalendar() {
+    const { viewYear: year, viewMonth: month } = state;
     const now = new Date();
-    // Anchor on UTC midnight to avoid week-boundary drift for users in western timezones
-    // (e.g. US Pacific at 11pm local is already the next UTC day, which would shift the window)
-    const weekStart = new Date(Date.UTC(
-      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
-    ));
-    weekStart.setUTCDate(weekStart.getUTCDate() + state.weekOffset * 7);
+    const todayKey = getTodayKey();
 
-    const weekEnd = new Date(weekStart);
-    weekEnd.setUTCDate(weekStart.getUTCDate() + 7);
+    // Update month/year label
+    const label = new Date(year, month, 1).toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric"
+    });
+    els.monthLabel.textContent = label;
 
-    return { weekStart, weekEnd };
+    // Disable prev button if we're already at the current month
+    const isCurrentMonth =
+      year === now.getFullYear() && month === now.getMonth();
+    els.prevMonthButton.disabled = isCurrentMonth;
+
+    // Day-of-week headers (Monday-first)
+    const dowHeaders = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    let html = dowHeaders.map((d) => `<div class="cal-dow">${d}</div>`).join("");
+
+    // Padding cells before first day (Monday-based: Mon=0, Sun=6)
+    const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
+    for (let i = 0; i < firstDow; i++) {
+      html += '<div class="cal-day other-month"></div>';
+    }
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const hasSlots = !!(state.monthSlots[dateKey]?.length);
+      const isToday = dateKey === todayKey;
+      const isSelected = dateKey === state.selectedDate;
+      const isPast = dateKey < todayKey;
+
+      let classes = "cal-day";
+      if (isPast) classes += " no-slots";
+      else if (hasSlots) classes += " has-slots";
+      if (isToday) classes += " today";
+      if (isSelected) classes += " selected-day";
+
+      const clickable = hasSlots && !isPast;
+      html += `<button type="button" class="${classes}"${clickable ? ` data-date="${escapeHtml(dateKey)}"` : " disabled"}>${d}</button>`;
+    }
+
+    els.calendarGrid.innerHTML = html;
+  }
+
+  function renderDaySlots(dateKey) {
+    const slots = state.monthSlots[dateKey] ?? [];
+    if (!slots.length) return;
+
+    state.selectedDate = dateKey;
+    state.selectedSlot = null;
+    els.continueButton.disabled = true;
+
+    // Update heading: "Wednesday, 11 June"
+    const dateObj = new Date(dateKey + "T00:00:00");
+    els.selectedDayHeading.textContent = dateObj.toLocaleDateString(undefined, {
+      weekday: "long",
+      day: "numeric",
+      month: "long"
+    });
+
+    els.timeSlotsList.innerHTML = slots
+      .map(
+        (slot) =>
+          `<button type="button" class="slot-btn" data-slot="${escapeHtml(slot)}">${escapeHtml(formatTime(new Date(slot)))}</button>`
+      )
+      .join("");
+
+    showTimeSlotsContent(true);
+
+    // Re-render calendar to update selected-day highlight
+    renderCalendar();
+  }
+
+  function selectSlot(slotUtc) {
+    state.selectedSlot = slotUtc;
+    document.querySelectorAll(".slot-btn").forEach((button) => {
+      button.classList.toggle("selected", button.dataset.slot === slotUtc);
+    });
+    els.continueButton.disabled = false;
+  }
+
+  async function loadSlotsForMonth(year, month) {
+    if (!state.selectedSession) return;
+
+    state.viewYear = year;
+    state.viewMonth = month;
+    state.selectedDate = null;
+    state.selectedSlot = null;
+    state.monthSlots = {};
+    els.continueButton.disabled = true;
+
+    showCalendarLoading(true);
+    showTimeSlotsContent(false);
+
+    const { from, to } = getMonthRange(year, month);
+
+    try {
+      const url = `${API_BASE}/slots?sessionType=${encodeURIComponent(state.selectedSession.id)}&from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`Slots request failed (${response.status}). ${body.slice(0, 180)}`);
+      }
+
+      const data = await response.json();
+      const slots = data.availableSlots ?? [];
+
+      // Group by local date key
+      const grouped = {};
+      for (const slot of slots) {
+        const key = toDateKey(new Date(slot));
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(slot);
+      }
+      state.monthSlots = grouped;
+
+      showCalendarLoading(false);
+      renderCalendar();
+    } catch (error) {
+      console.error("Failed to load slots for month", {
+        apiBase: API_BASE,
+        sessionType: state.selectedSession?.id,
+        year,
+        month,
+        error
+      });
+      showCalendarLoading(false);
+      els.calendarGrid.innerHTML =
+        '<div class="error-msg" style="grid-column:1/-1">Could not load availability. Please try again.</div>';
+    }
   }
 
   async function loadSessions() {
@@ -164,115 +323,6 @@
     els.chooseTimeButton.disabled = false;
   }
 
-  function getWeekSlots() {
-    const { weekStart, weekEnd } = getCurrentWeekRange();
-    return state.allSlots.filter((slot) => {
-      const slotDate = new Date(slot);
-      return slotDate >= weekStart && slotDate < weekEnd;
-    });
-  }
-
-  function updateWeekLabel() {
-    const { weekStart } = getCurrentWeekRange();
-    const weekEnd = new Date(weekStart);
-    weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-
-    const startText = weekStart.toLocaleDateString(undefined, { day: "numeric", month: "short" });
-    const endText = weekEnd.toLocaleDateString(undefined, { day: "numeric", month: "short" });
-
-    els.weekLabel.textContent = `${startText} - ${endText}`;
-    els.prevWeekButton.disabled = state.weekOffset <= 0;
-  }
-
-  function renderSlots() {
-    updateWeekLabel();
-
-    const weekSlots = getWeekSlots();
-    if (weekSlots.length === 0) {
-      els.slotsContainer.innerHTML =
-        '<p class="no-slots">No available slots this week. Try the next week.</p>';
-      return;
-    }
-
-    const groupedSlots = new Map();
-    for (const slot of weekSlots) {
-      const date = new Date(slot);
-      const key = formatDay(date);
-      if (!groupedSlots.has(key)) {
-        groupedSlots.set(key, []);
-      }
-
-      groupedSlots.get(key).push(slot);
-    }
-
-    const groupedHtml = Array.from(groupedSlots.entries())
-      .map(
-        ([dayLabel, slots]) => `
-      <div class="day-group">
-        <div class="day-label">${escapeHtml(dayLabel)}</div>
-        <div class="slots-row">
-          ${slots
-            .map(
-              (slot) => `
-            <button type="button" class="slot-btn${slot === state.selectedSlot ? " selected" : ""}" data-slot="${escapeHtml(slot)}">
-              ${escapeHtml(formatTime(new Date(slot)))}
-            </button>
-          `
-            )
-            .join("")}
-        </div>
-      </div>
-    `
-      )
-      .join("");
-
-    els.slotsContainer.innerHTML = groupedHtml;
-  }
-
-  function selectSlot(slotUtc) {
-    state.selectedSlot = slotUtc;
-    document.querySelectorAll(".slot-btn").forEach((button) => {
-      button.classList.toggle("selected", button.dataset.slot === slotUtc);
-    });
-
-    els.continueButton.disabled = false;
-  }
-
-  async function loadSlots() {
-    if (!state.selectedSession) {
-      return;
-    }
-
-    els.slotsContainer.innerHTML =
-      '<div class="loading"><div class="spinner"></div><br/>Checking availability...</div>';
-
-    try {
-      const response = await fetch(
-        `${API_BASE}/slots?sessionType=${encodeURIComponent(state.selectedSession.id)}&weeksAhead=4`
-      );
-
-      if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`Slots request failed (${response.status}). ${body.slice(0, 180)}`);
-      }
-
-      const data = await response.json();
-      state.allSlots = data.availableSlots ?? [];
-      state.selectedSlot = null;
-      state.weekOffset = 0;
-      els.continueButton.disabled = true;
-      renderSlots();
-    } catch (error) {
-      console.error("Failed to load slots", {
-        apiBase: API_BASE,
-        sessionType: state.selectedSession?.id,
-        error
-      });
-      els.slotsContainer.innerHTML =
-        '<div class="error-msg">Could not load availability. Please try again.</div>';
-    }
-  }
-
   function renderBookingSummary() {
     if (!state.selectedSession || !state.selectedSlot) {
       return;
@@ -301,7 +351,8 @@
     });
 
     if (step === 2) {
-      loadSlots();
+      const now = new Date();
+      loadSlotsForMonth(now.getFullYear(), now.getMonth());
     }
 
     if (step === 3) {
@@ -408,20 +459,36 @@
   function wireEvents() {
     els.sessionList.addEventListener("click", (event) => {
       const card = event.target.closest(".session-card");
-      if (!card) {
-        return;
-      }
-
+      if (!card) return;
       selectSession(card.dataset.id);
     });
 
-    els.slotsContainer.addEventListener("click", (event) => {
-      const button = event.target.closest(".slot-btn");
-      if (!button) {
-        return;
-      }
+    // Calendar day clicks
+    els.calendarGrid.addEventListener("click", (event) => {
+      const day = event.target.closest(".cal-day[data-date]");
+      if (!day) return;
+      renderDaySlots(day.dataset.date);
+    });
 
+    // Time slot clicks
+    document.getElementById("time-slots-list").addEventListener("click", (event) => {
+      const button = event.target.closest(".slot-btn");
+      if (!button) return;
       selectSlot(button.dataset.slot);
+    });
+
+    els.prevMonthButton.addEventListener("click", () => {
+      let { viewYear, viewMonth } = state;
+      viewMonth -= 1;
+      if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; }
+      loadSlotsForMonth(viewYear, viewMonth);
+    });
+
+    els.nextMonthButton.addEventListener("click", () => {
+      let { viewYear, viewMonth } = state;
+      viewMonth += 1;
+      if (viewMonth > 11) { viewMonth = 0; viewYear += 1; }
+      loadSlotsForMonth(viewYear, viewMonth);
     });
 
     els.chooseTimeButton.addEventListener("click", () => goTo(2));
@@ -429,18 +496,6 @@
     els.stepOneBackButton.addEventListener("click", () => goTo(1));
     els.stepTwoBackButton.addEventListener("click", () => goTo(2));
     els.confirmButton.addEventListener("click", confirmBooking);
-    els.prevWeekButton.addEventListener("click", () => {
-      if (state.weekOffset <= 0) {
-        return;
-      }
-
-      state.weekOffset -= 1;
-      renderSlots();
-    });
-    els.nextWeekButton.addEventListener("click", () => {
-      state.weekOffset += 1;
-      renderSlots();
-    });
   }
 
   setTimeZoneHint();

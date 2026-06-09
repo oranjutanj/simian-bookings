@@ -1,16 +1,20 @@
 # Simian Bookings — Status
 
-## 2026-06-09 — Production booking flow working end-to-end
+## 2026-06-09 — Calendar UI for date/time selection
 
 ### Progress made today
-- Azure deployment is now working and booking flow is functioning.
-- Resolved successive deployment/runtime blockers (publish profile auth, API base URL shape, and Function App CORS origin allowlist).
-- Confirmed system is in a good stopping point for the next session.
+- Replaced week-navigation slot picker (step 2) with a proper month calendar view.
+- Layout: two-column — calendar grid on the left, time slots panel on the right (stacks vertically on mobile).
+- Calendar highlights days that have available slots in green; days with no availability are greyed out; today gets a dot indicator; selected day goes dark green.
+- Clicking a day instantly shows its available time slots in the right panel — no additional API call needed.
+- Month navigation (prev/next arrows) triggers a fresh API call for that month's availability.
+- Backend (`GetAvailableSlots.cs`) updated to accept `from` and `to` ISO datetime query params (falls back to `weeksAhead` if not provided).
+- `main` container widened from 680px to 760px to accommodate the two-column layout comfortably.
 
 ### Next suggested steps
-1. Add DNS CNAME and configure custom domain for booking page: `book.simiancoaching.co.uk`.
-2. Update environment/config references so public access uses custom domain consistently.
-3. Replace week-list time selection UI with a calendar-style date/time picker similar to Microsoft Bookings.
+1. Deploy updated `api/` and `web/` to Azure (rebuild + push).
+2. Add DNS CNAME and configure custom domain `book.simiancoaching.co.uk`.
+
 
 ## 2026-06-09 — Production CORS failure diagnosed (missing allowed origin in Function App)
 

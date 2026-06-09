@@ -29,6 +29,8 @@ public class GetAvailableSlots
         var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
         var sessionTypeId = query["sessionType"];
         var weeksAheadStr = query["weeksAhead"];
+        var fromParam = query["from"];
+        var toParam = query["to"];
 
         if (string.IsNullOrEmpty(sessionTypeId))
         {
@@ -47,9 +49,21 @@ public class GetAvailableSlots
             return notFound;
         }
 
-        var weeksAhead = int.TryParse(weeksAheadStr, out var w) ? w : 2;
-        var fromUtc = DateTime.UtcNow;
-        var toUtc = fromUtc.AddDays(weeksAhead * 7);
+        DateTime fromUtc, toUtc;
+        if (!string.IsNullOrEmpty(fromParam) && !string.IsNullOrEmpty(toParam)
+            && DateTime.TryParse(fromParam, null, System.Globalization.DateTimeStyles.RoundtripKind, out var parsedFrom)
+            && DateTime.TryParse(toParam, null, System.Globalization.DateTimeStyles.RoundtripKind, out var parsedTo))
+        {
+            // Clamp from to now so we never query for past availability
+            fromUtc = parsedFrom.ToUniversalTime() < DateTime.UtcNow ? DateTime.UtcNow : parsedFrom.ToUniversalTime();
+            toUtc = parsedTo.ToUniversalTime();
+        }
+        else
+        {
+            var weeksAhead = int.TryParse(weeksAheadStr, out var w) ? w : 2;
+            fromUtc = DateTime.UtcNow;
+            toUtc = fromUtc.AddDays(weeksAhead * 7);
+        }
 
         try
         {

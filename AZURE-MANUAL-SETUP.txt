@@ -127,7 +127,15 @@ Important:
    - reminder is present on event
 3. If browser shows CORS issue:
    - Function App -> API -> CORS
-   - add your Static Web App URL
+   - add your Static Web App URL exactly (no trailing slash), e.g.
+     https://lively-water-09df72e03.7.azurestaticapps.net
+   - Save and wait ~30-60 seconds for platform config to apply
+   - Retest `/api/session-types` from booking page
+
+Important CORS notes:
+- For browser requests, Azure Functions platform CORS settings are authoritative.
+- If the origin is not allowed, browser requests fail with missing `Access-Control-Allow-Origin` and preflight `OPTIONS` may return 400.
+- Add every required origin explicitly (production SWA URL, preview URL if used, localhost if needed for local web testing).
 
 
 ----------------------------------------

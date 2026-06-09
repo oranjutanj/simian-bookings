@@ -220,10 +220,11 @@ This allows session types and availability to be changed without editing code.
 
 ## Recommended Next Steps
 
-1. Provision Azure resources manually using AZURE-MANUAL-SETUP.txt.
-2. Add GitHub Actions secrets and push to main to enable automatic deploys.
-3. Add more smoke coverage around the details form and non-destructive happy-path checks.
-4. Add a booking horizon rule (for example no more than 8 weeks in advance) and user-facing message for longer-range requests.
+1. Add custom domain for the booking site (`book.simiancoaching.co.uk`) via Static Web App + DNS CNAME.
+2. Update production config/references to use the custom booking domain consistently.
+3. Replace current week-list slot selection with a calendar-style date/time picker UX.
+4. Add more smoke coverage around the details form and non-destructive happy-path checks.
+5. Add a booking horizon rule (for example no more than 8 weeks in advance) and user-facing message for longer-range requests.
 6. Always display direct contact details (for example `mike@simiancoaching.co.uk`) in the booking UI for manual requests.
 7. Expand timezone smoke scenarios further (for example EU/APAC locales and confirmation text assertions) beyond current US-focused coverage.
 

@@ -1,5 +1,30 @@
 # Simian Bookings — Status
 
+## 2026-06-09 — Production booking flow working end-to-end
+
+### Progress made today
+- Azure deployment is now working and booking flow is functioning.
+- Resolved successive deployment/runtime blockers (publish profile auth, API base URL shape, and Function App CORS origin allowlist).
+- Confirmed system is in a good stopping point for the next session.
+
+### Next suggested steps
+1. Add DNS CNAME and configure custom domain for booking page: `book.simiancoaching.co.uk`.
+2. Update environment/config references so public access uses custom domain consistently.
+3. Replace week-list time selection UI with a calendar-style date/time picker similar to Microsoft Bookings.
+
+## 2026-06-09 — Production CORS failure diagnosed (missing allowed origin in Function App)
+
+### Progress made today
+- Reproduced browser CORS issue with `Origin: https://lively-water-09df72e03.7.azurestaticapps.net`.
+- Verified `GET /api/session-types` returns 200 but no `Access-Control-Allow-Origin` when `Origin` header is present.
+- Verified preflight `OPTIONS /api/bookings` returns 400, confirming platform CORS configuration gap.
+- Added exact Function App CORS setup steps and notes to `AZURE-MANUAL-SETUP.txt`.
+
+### Next suggested steps
+1. Function App -> API -> CORS: add `https://lively-water-09df72e03.7.azurestaticapps.net` (no trailing slash).
+2. Save, wait up to 60 seconds, hard refresh booking page, retest.
+3. If using SWA preview environments, add those preview origins too.
+
 ## 2026-06-09 — Generic UI errors retained, backend telemetry/logging improved
 
 ### Progress made today

@@ -102,14 +102,16 @@
     try {
       const response = await fetch(`${API_BASE}/session-types`);
       if (!response.ok) {
-        throw new Error("Session request failed");
+        const body = await response.text();
+        throw new Error(`Session request failed (${response.status}). ${body.slice(0, 180)}`);
       }
 
       state.sessions = await response.json();
       renderSessions();
-    } catch {
+    } catch (error) {
+      console.error("Failed to load sessions", { apiBase: API_BASE, error });
       els.sessionList.innerHTML =
-        '<div class="error-msg">Could not load sessions. Please refresh the page.</div>';
+        `<div class="error-msg">Could not load sessions from ${escapeHtml(API_BASE)}. Please refresh. If this persists, check browser console for details.</div>`;
     }
   }
 
@@ -232,7 +234,8 @@
       );
 
       if (!response.ok) {
-        throw new Error("Slots request failed");
+        const body = await response.text();
+        throw new Error(`Slots request failed (${response.status}). ${body.slice(0, 180)}`);
       }
 
       const data = await response.json();
@@ -241,9 +244,14 @@
       state.weekOffset = 0;
       els.continueButton.disabled = true;
       renderSlots();
-    } catch {
+    } catch (error) {
+      console.error("Failed to load slots", {
+        apiBase: API_BASE,
+        sessionType: state.selectedSession?.id,
+        error
+      });
       els.slotsContainer.innerHTML =
-        '<div class="error-msg">Could not load availability. Please try again.</div>';
+        '<div class="error-msg">Could not load availability. Check browser console and Function logs for details.</div>';
     }
   }
 
@@ -366,9 +374,15 @@
       }
 
       goTo(4);
-    } catch {
+    } catch (error) {
+      console.error("Booking request failed", {
+        apiBase: API_BASE,
+        sessionType: state.selectedSession?.id,
+        slot: state.selectedSlot,
+        error
+      });
       els.formError.innerHTML =
-        '<div class="error-msg">Could not connect to the booking service. Please try again.</div>';
+        `<div class="error-msg">Could not connect to the booking service (${escapeHtml(API_BASE)}). Please try again.</div>`;
       resetConfirmButton();
     }
   }

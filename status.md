@@ -1,5 +1,19 @@
 # Simian Bookings — Status
 
+## 2026-06-09 — Deployed web showed "Could not load sessions" (diagnosed + hardened)
+
+### Progress made today
+- Diagnosed production issue where booking page showed "Could not load sessions. Please refresh the page."
+- Verified the API endpoint mismatch: `https://simian-bookings-api.azurewebsites.net/api/session-types` did not resolve, while the real host `https://simian-bookings-api-d8hgfzhxa8fjbwfv.ukwest-01.azurewebsites.net/api/session-types` returned 200 with session data.
+- Updated `.github/workflows/deploy.yml` so deploy now fails fast if GitHub variable `PROD_API_BASE_URL` is missing (no silent fallback to wrong host).
+- Improved `web/booking.js` diagnostics to include console error context (API base URL + error details) for sessions, slots, and bookings.
+- Updated `AZURE-MANUAL-SETUP.txt` troubleshooting to call out the `PROD_API_BASE_URL` symptom and fix path.
+
+### Next suggested steps
+1. Set GitHub variable `PROD_API_BASE_URL` to the currently working Function API host.
+2. Re-run only the `Deploy Web` job (or push a tiny commit) to regenerate `runtime-config.js`.
+3. Open browser devtools on the booking page and confirm `GET /api/session-types` returns 200.
+
 ## 2026-06-09 — GitHub Actions Deploy API 401 troubleshooting captured
 
 ### Progress made today

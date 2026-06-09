@@ -61,7 +61,8 @@ jobs:
         run: |
           API_BASE_URL="${{ vars.PROD_API_BASE_URL }}"
           if [ -z "$API_BASE_URL" ]; then
-            API_BASE_URL="https://simian-bookings-api.azurewebsites.net/api"
+            echo "::error::Missing GitHub variable PROD_API_BASE_URL. Set it to your live Function API URL, e.g. https://<function-app-host>/api"
+            exit 1
           fi
 
           cat > web/runtime-config.js <<EOF

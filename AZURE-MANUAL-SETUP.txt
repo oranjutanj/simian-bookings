@@ -94,6 +94,9 @@ In GitHub repo settings (not in code):
    https://simian-bookings-api-d8hgfzhxa8fjbwfv.ukwest-01.azurewebsites.net/api
 
 Important:
+- This variable is required. If it is missing or wrong, the booking page usually shows "Could not load sessions. Please refresh the page." on first load.
+
+Important:
 - You do NOT need to edit web/booking.js for each deployment.
 - The workflow writes web/runtime-config.js at deploy time using PROD_API_BASE_URL.
 - If you rename the Function App later, just update PROD_API_BASE_URL once.
@@ -147,6 +150,10 @@ Troubleshooting quick list
 
 - Deploy Web fails:
   deployment token wrong/expired. Re-copy from SWA and update secret.
+
+- Web loads but shows "Could not load sessions":
+   usually `PROD_API_BASE_URL` is missing/wrong.
+   Check deployed `runtime-config.js` in browser devtools and verify `/api/session-types` responds 200.
 
 - Booking API 500s:
   check Function App -> Monitoring -> Log stream for missing setting or Graph permission errors.

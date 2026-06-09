@@ -17,7 +17,7 @@ What exists today:
 
 What does not exist yet:
 
-- Production Azure resources (manual setup still required)
+- Fully validated production booking flow after first live deployment
 
 ## How It Works
 
@@ -40,6 +40,11 @@ What does not exist yet:
 
   - `http://localhost:7071/api` when opened locally via `file://` or localhost
   - `window.SIMIAN_CONFIG.apiBase` in deployed environments (written by workflow)
+
+Important:
+
+- `PROD_API_BASE_URL` must be set in GitHub Actions variables to the live Function API URL.
+- If this variable is wrong/missing, the booking page will fail early with "Could not load sessions".
 
 ### Backend
 

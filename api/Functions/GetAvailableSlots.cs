@@ -23,7 +23,7 @@ public class GetAvailableSlots
     }
 
     private static string AllowedOrigin =>
-        Environment.GetEnvironmentVariable("AllowedOrigin") ?? "*";
+        Environment.GetEnvironmentVariable("AllowedOrigin") is { Length: > 0 } v ? v : "*";
 
     private static bool IsOriginAllowed(HttpRequestData req)
     {

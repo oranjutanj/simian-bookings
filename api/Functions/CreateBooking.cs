@@ -23,6 +23,9 @@ public class CreateBooking
         _logger = logger;
     }
 
+    private static string AllowedOrigin =>
+        Environment.GetEnvironmentVariable("AllowedOrigin") ?? "*";
+
     [Function("CreateBooking")]
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "bookings")] HttpRequestData req)
@@ -33,6 +36,14 @@ public class CreateBooking
             var preflight = req.CreateResponse(HttpStatusCode.NoContent);
             AddCorsHeaders(preflight);
             return preflight;
+        }
+
+        // Reject cross-origin requests from unlisted origins when CORS is locked down
+        if (!IsOriginAllowed(req))
+        {
+            var forbidden = req.CreateResponse(HttpStatusCode.Forbidden);
+            await forbidden.WriteStringAsync("Origin not allowed");
+            return forbidden;
         }
 
         BookingRequest? booking;
@@ -138,9 +149,18 @@ public class CreateBooking
         }
     }
 
+    private static bool IsOriginAllowed(HttpRequestData req)
+    {
+        var allowed = AllowedOrigin;
+        if (allowed == "*") return true; // local dev / no restriction configured
+        req.Headers.TryGetValues("Origin", out var originValues);
+        var origin = originValues?.FirstOrDefault();
+        return origin == null || origin.Equals(allowed, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void AddCorsHeaders(HttpResponseData response)
     {
-        response.Headers.Add("Access-Control-Allow-Origin", "*");
+        response.Headers.Add("Access-Control-Allow-Origin", AllowedOrigin);
         response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
         response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
     }

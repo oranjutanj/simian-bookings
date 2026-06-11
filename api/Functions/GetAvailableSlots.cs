@@ -22,10 +22,29 @@ public class GetAvailableSlots
         _logger = logger;
     }
 
+    private static string AllowedOrigin =>
+        Environment.GetEnvironmentVariable("AllowedOrigin") ?? "*";
+
+    private static bool IsOriginAllowed(HttpRequestData req)
+    {
+        var allowed = AllowedOrigin;
+        if (allowed == "*") return true;
+        req.Headers.TryGetValues("Origin", out var originValues);
+        var origin = originValues?.FirstOrDefault();
+        return origin == null || origin.Equals(allowed, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Function("GetAvailableSlots")]
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "slots")] HttpRequestData req)
     {
+        if (!IsOriginAllowed(req))
+        {
+            var forbidden = req.CreateResponse(HttpStatusCode.Forbidden);
+            await forbidden.WriteStringAsync("Origin not allowed");
+            return forbidden;
+        }
+
         var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
         var sessionTypeId = query["sessionType"];
         var weeksAheadStr = query["weeksAhead"];
@@ -115,6 +134,13 @@ public class GetAvailableSlots
     public async Task<HttpResponseData> GetSessionTypes(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "session-types")] HttpRequestData req)
     {
+        if (!IsOriginAllowed(req))
+        {
+            var forbidden = req.CreateResponse(HttpStatusCode.Forbidden);
+            await forbidden.WriteStringAsync("Origin not allowed");
+            return forbidden;
+        }
+
         try
         {
             var all = _sessions.GetAll().Select(s => new
@@ -146,6 +172,6 @@ public class GetAvailableSlots
 
     private static void AddCorsHeaders(HttpResponseData response)
     {
-        response.Headers.Add("Access-Control-Allow-Origin", "*");
+        response.Headers.Add("Access-Control-Allow-Origin", AllowedOrigin);
     }
 }

@@ -1,4 +1,4 @@
-// Of COURSE this is vibe coded.
+// Of COURSE this is vibe coded. No judging.
 
 (() => {
   const configuredApiBase = (window.SIMIAN_CONFIG?.apiBase || "").trim();

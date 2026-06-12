@@ -58,6 +58,8 @@ Add these values from api/local.settings.json (Values object):
 - GoogleClientSecret
 - GoogleRefreshToken
 - GoogleCalendarId
+- GoogleHolidayCalendarId
+  (Default: en.uk#holiday@group.v.calendar.google.com — this blocks UK public holidays)
 
 Also verify telemetry settings exist:
 - `APPLICATIONINSIGHTS_CONNECTION_STRING` (or `APPINSIGHTS_INSTRUMENTATIONKEY`)

@@ -1,5 +1,22 @@
 # Simian Bookings — Status
 
+## 2026-06-12 — Public holiday blocking via Google Holiday Calendar
+
+### Progress made today
+- Created `api/Services/GoogleHolidayCalendarService.cs` — a new `ICalendarSource` that queries the "Holidays in United Kingdom" Google Calendar directly using the Events API (not FreeBusy, since holiday events are all-day and not marked as busy).
+- Each holiday blocks the entire UK day (midnight–midnight converted to UTC), so no slots are offered on bank holidays.
+- Registered the new service in `Program.cs` alongside the existing `GoogleCalendarService`.
+- Added `GoogleHolidayCalendarId` setting to `local.settings.json` (default: `en.uk#holiday@group.v.calendar.google.com`).
+- Updated `AZURE-MANUAL-SETUP.txt` to document the new Azure Function App environment variable.
+
+### Azure deployment required
+Add `GoogleHolidayCalendarId` = `en.uk#holiday@group.v.calendar.google.com` to the Function App environment variables in Azure Portal (Settings → Environment variables), then redeploy.
+
+### Next suggested steps
+1. Redeploy API (`dotnet publish` / GitHub Actions push to main).
+2. Add `GoogleHolidayCalendarId` to Azure Function App environment variables.
+3. Test that Christmas Day, Easter Monday, etc. show no available slots.
+
 ## 2026-06-09 — Calendar UI for date/time selection
 
 ### Progress made today

@@ -17,6 +17,7 @@ var host = new HostBuilder()
         services.AddSingleton<IGraphService>(sp => sp.GetRequiredService<GraphService>());
         services.AddSingleton<ICalendarSource>(sp => sp.GetRequiredService<GraphService>());
         services.AddSingleton<ICalendarSource, GoogleCalendarService>();
+        services.AddSingleton<ICalendarSource, GoogleHolidayCalendarService>();
         services.AddSingleton<ISessionsService, SessionsService>();
     })
     .Build();
